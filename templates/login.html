@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobBot — Connexion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f11;
+    --surface: #13161a;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8e4dc;
+    --muted: #7a7870;
+    --accent: #c8b98a;
+    --danger: #c47b6e;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card {
+    width: 340px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .logo {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--text);
+    text-align: center;
+    letter-spacing: .02em;
+  }
+  .logo em { font-style: italic; color: var(--accent); }
+  .tagline {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin-top: -1rem;
+  }
+  .form { display: flex; flex-direction: column; gap: .85rem; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 11px; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; }
+  .field input {
+    background: #1a1e24;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .btn-submit {
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: rgba(200,185,138,.08);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .15s;
+    letter-spacing: .04em;
+    margin-top: .25rem;
+  }
+  .btn-submit:hover { background: rgba(200,185,138,.15); }
+  .error {
+    font-size: 12px;
+    color: var(--danger);
+    text-align: center;
+    padding: 8px 12px;
+    background: rgba(196,123,110,.1);
+    border: 1px solid rgba(196,123,110,.2);
+    border-radius: 6px;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div>
+    <div class="logo">Job<em>Bot</em></div>
+    <div class="tagline">Accès privé</div>
+  </div>
+  <form class="form" method="POST" action="/login">
+    <div class="field">
+      <label>Identifiant</label>
+      <input type="text" name="username" autocomplete="username" autofocus />
+    </div>
+    <div class="field">
+      <label>Mot de passe</label>
+      <input type="password" name="password" autocomplete="current-password" />
+    </div>
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+    <button class="btn-submit" type="submit">Se connecter</button>
+  </form>
+</div>
+</body>
+</html>

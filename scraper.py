@@ -18,13 +18,8 @@ HEADERS = {
 
 def scrape_all(config: dict) -> list:
     sites = config.get("sites", {})
-    location = config.get("localisation", "Paris")
-    
-    # Tous les intitulés à chercher
-    keywords_list = config.get("keywords_search", [
-        config.get("poste_cible", "analyste crédit")
-    ])
-    
+    track_a = config.get("track_a", {})
+    track_b = config.get("track_b", {})
     all_offers = []
     seen_urls = set()
 
@@ -37,7 +32,15 @@ def scrape_all(config: dict) -> list:
         "linkedin":   scrape_linkedin,
     }
 
-    for keyword in keywords_list:
+    tracks = []
+    if track_a.get("enabled", True):
+        for kw in track_a.get("keywords", ["analyste crédit"]):
+            tracks.append(("a", kw, track_a.get("localisation", "Paris")))
+    if track_b.get("enabled", True):
+        for kw in track_b.get("keywords", ["consultant financement"]):
+            tracks.append(("b", kw, track_b.get("localisation", "Paris")))
+
+    for track, keyword, location in tracks:
         for key, fn in scrapers.items():
             if not sites.get(key, False):
                 continue
@@ -48,10 +51,15 @@ def scrape_all(config: dict) -> list:
                     if url and url in seen_urls:
                         continue
                     seen_urls.add(url)
+                    o["track"] = track
                     all_offers.append(o)
-                time.sleep(random.uniform(1, 3))
+                time.sleep(random.uniform(1, 2))
             except Exception as e:
                 print(f"[{key}] Erreur : {e}")
+
+    return all_offers
+        except Exception as e:
+            print(f"[{key}] Erreur : {e}")
 
     return all_offers
 

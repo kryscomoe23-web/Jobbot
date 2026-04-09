@@ -218,52 +218,63 @@ def bot_loop():
     db = get_db()
     config = load_config()
     add_log(db, "Bot démarré — mode validation manuelle", "success")
-    add_log(db, f"Plateformes : {', '.join([k for k,v in config['sites'].items() if v])}", "info")
+    sites_on = [k for k, v in config.get("sites", {}).items() if v]
+    add_log(db, f"Plateformes : {', '.join(sites_on)}", "info")
+
+    track_a = config.get("track_a", {})
+    track_b = config.get("track_b", {})
+    if track_a.get("enabled", True):
+        add_log(db, f"Piste Banque/Crédit : {len(track_a.get('keywords', []))} intitulés", "info")
+    if track_b.get("enabled", True):
+        add_log(db, f"Piste Conseil/M&A : {len(track_b.get('keywords', []))} intitulés", "info")
 
     while bot_state["running"]:
         config = load_config()
         add_log(db, "Nouvelle session de scraping...", "info")
 
         try:
-            offers = scrape_all(config)
-            add_log(db, f"{len(offers)} offres récupérées", "info")
+            all_offers = scrape_all(config)
+            add_log(db, f"{len(all_offers)} offres récupérées", "info")
 
-            for offer in offers:
+            for offer in all_offers:
                 if not bot_state["running"]:
                     break
                 if not offer.get("title") or not offer.get("company"):
                     continue
 
-                # Dédoublonnage par URL
+                # Dédoublonnage
                 if offer.get("url"):
-                    existing = db.execute(
-                        "SELECT id FROM offers WHERE url=?", (offer["url"],)
-                    ).fetchone()
+                    existing = db.execute("SELECT id FROM offers WHERE url=?", (offer["url"],)).fetchone()
                     if existing:
                         continue
 
-                add_log(db, f"[{offer['site']}] Analyse : \"{offer['title']}\" chez {offer['company']}...", "info")
+                track = offer.get("track", "a")
+                track_config = config.get(f"track_{track}", {})
+                score_min = track_config.get("score_min", 7)
+                track_label = "Banque" if track == "a" else "Conseil"
 
-                scored = score_offer(offer, config)
+                add_log(db, f"[{offer['site']}][{track_label}] Analyse : \"{offer['title']}\" chez {offer['company']}...", "info")
+
+                scored = score_offer(offer, track_config)
                 score = scored.get("score", 0)
                 analysis = scored.get("analysis", "")
 
-                add_log(db, f"[{offer['site']}] Score {score}/10 — {offer['company']}", "success" if score >= config['score_min'] else "info")
+                add_log(db, f"[{offer['site']}] Score {score}/10 — {offer['company']}", "success" if score >= score_min else "info")
 
-                if score >= config["score_min"]:
-                    lm = generate_lm(offer, config)
+                if score >= score_min:
+                    lm = generate_lm(offer, track_config)
                     db.execute("""
                         INSERT OR IGNORE INTO offers
-                        (title, company, site, location, salary, url, score, ai_analysis, lm_draft, status, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+                        (title, company, site, location, salary, url, score, ai_analysis, lm_draft, track, status, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
                     """, (
                         offer["title"], offer["company"], offer["site"],
                         offer.get("location", ""), offer.get("salary", ""),
                         offer.get("url", ""), score, analysis, lm,
-                        datetime.now().isoformat()
+                        track, datetime.now().isoformat()
                     ))
                     db.commit()
-                    add_log(db, f"[{offer['site']}] → En file de validation : {offer['company']}", "success")
+                    add_log(db, f"[{offer['site']}][{track_label}] → File de validation : {offer['company']}", "success")
 
                 time.sleep(random.uniform(2, 5))
 
@@ -282,8 +293,8 @@ def bot_loop():
     db.commit()
 
 
-init_db()
 if __name__ == "__main__":
+    init_db()
     if not os.path.exists("config.json"):
         with open("config.json", "w") as f:
             json.dump(DEFAULT_CONFIG, f, indent=2, ensure_ascii=False)

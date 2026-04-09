@@ -6,23 +6,31 @@ import anthropic
 def score_offer(offer: dict, config: dict) -> dict:
     client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
-    prompt = f"""Tu es un expert en recrutement finance. Analyse cette offre par rapport au profil candidat.
+    prompt = f"""Tu es un expert en recrutement finance/conseil. Note cette offre pour ce candidat.
 
-PROFIL :
-- Poste recherché : {config.get('poste_cible')}
-- Expérience : {config.get('profil_summary')}
-- Localisation : {config.get('localisation')}
-- Salaire min : {config.get('salaire_min', 0)}€
+PROFIL DU CANDIDAT :
+{config.get('profil_summary', '')}
+Poste recherché : {config.get('label', 'Finance')}
+Localisation : Paris / Île-de-France
+Salaire minimum : {config.get('salaire_min', 0)}€
 
 OFFRE :
 Titre : {offer.get('title')}
 Entreprise : {offer.get('company')}
 Lieu : {offer.get('location', 'N/A')}
-Salaire : {offer.get('salary', 'N/A')}
-Description : {offer.get('description', 'N/A')[:800]}
+Salaire : {offer.get('salary', 'Non précisé')}
+Description : {offer.get('description', 'Non disponible')[:800]}
 
-Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après, sans markdown, sans backticks :
-{{"score": 7, "analysis": "explication ici", "highlights": ["point 1", "point 2"]}}"""
+RÈGLES DE NOTATION :
+- Note de 1 à 10
+- Sois GÉNÉREUX si le titre correspond même partiellement au profil
+- Un titre pertinent sans description vaut au moins 6
+- Pénalise seulement si le poste est clairement hors sujet (marketing, IT pur, RH...)
+- Ne pénalise pas l'absence de description
+- Salaire non précisé = ne pénalise pas
+
+Réponds UNIQUEMENT avec un objet JSON valide sans texte avant ni après :
+{{"score": 7, "analysis": "explication courte en français", "highlights": ["point 1", "point 2"]}}"""
 
     response = client.messages.create(
         model="claude-haiku-4-5-20251001",
@@ -31,11 +39,9 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après, sans 
     )
 
     text = response.content[0].text.strip()
-    # Nettoie les backticks markdown si présents
     text = text.replace("```json", "").replace("```", "").strip()
-    
+
     try:
         return json.loads(text)
     except Exception:
-        # Fallback si le JSON est mal formé
-        return {"score": 5, "analysis": text[:200], "highlights": []}
+        return {"score": 6, "analysis": text[:200], "highlights": []}

@@ -1,18 +1,18 @@
 import sqlite3
 import os
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "jobbot.db")
+DB_PATH = "/tmp/jobbot.db"
 
 
 def get_db():
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
+    init_tables(conn)
     return conn
 
 
-def init_db():
-    db = get_db()
-    db.executescript("""
+def init_tables(conn):
+    conn.executescript("""
         CREATE TABLE IF NOT EXISTS offers (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             title       TEXT NOT NULL,
@@ -36,5 +36,9 @@ def init_db():
             created_at TEXT
         );
     """)
-    db.commit()
+    conn.commit()
+
+
+def init_db():
+    db = get_db()
     db.close()

@@ -1,5 +1,4 @@
 import sqlite3
-import os
 
 DB_PATH = "/tmp/jobbot.db"
 
@@ -19,7 +18,6 @@ def init_tables(conn):
             level      TEXT DEFAULT 'info',
             created_at TEXT
         );
-
         CREATE TABLE IF NOT EXISTS offers (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             title       TEXT NOT NULL,
@@ -38,8 +36,6 @@ def init_tables(conn):
             sent_at     TEXT
         );
     """)
-
-    -- Ajoute la colonne track si elle manque (migration)
     try:
         conn.execute("ALTER TABLE offers ADD COLUMN track TEXT DEFAULT 'a'")
         conn.commit()
@@ -48,5 +44,4 @@ def init_tables(conn):
 
 
 def init_db():
-    db = get_db()
-    db.close()
+    get_db().close()

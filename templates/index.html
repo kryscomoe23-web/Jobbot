@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0d0f11;
+    --surface:  #13161a;
+    --surface2: #1a1e24;
+    --border:   rgba(255,255,255,0.07);
+    --border2:  rgba(255,255,255,0.12);
+    --text:     #e8e4dc;
+    --muted:    #7a7870;
+    --hint:     #4a4845;
+    --accent:   #c8b98a;
+    --accent2:  #8fb5a0;
+    --danger:   #c47b6e;
+    --warn:     #c4a46e;
+    --ok:       #7aaa8a;
+    --blue:     #7aabc4;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 13px; }
+
+  /* Layout */
+  .shell { display: flex; height: 100vh; }
+  .sidebar { width: 200px; min-width: 200px; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 1.5rem 1rem; gap: 2px; }
+  .main { flex: 1; overflow-y: auto; padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+
+  /* Logo */
+  .logo { font-family: var(--font-display); font-size: 20px; font-weight: 300; color: var(--text); letter-spacing: .02em; padding: 0 .5rem 1.25rem; border-bottom: 1px solid var(--border); margin-bottom: .75rem; }
+  .logo em { font-style: italic; color: var(--accent); }
+
+  /* Nav */
+  .nav-item { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 6px; font-size: 12px; color: var(--muted); cursor: pointer; transition: all .15s; letter-spacing: .03em; }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: var(--surface2); color: var(--text); }
+  .nav-icon { width: 14px; height: 14px; opacity: .7; flex-shrink: 0; }
+  .nav-badge { margin-left: auto; background: var(--danger); color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 8px; font-weight: 500; }
+
+  /* Bot button */
+  .bot-btn { margin-top: auto; padding: 9px; border-radius: 6px; border: 1px solid var(--border2); background: transparent; color: var(--text); font-family: var(--font-mono); font-size: 12px; cursor: pointer; transition: all .2s; letter-spacing: .05em; text-align: center; }
+  .bot-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .bot-btn.running { border-color: var(--danger); color: var(--danger); }
+
+  /* Top bar */
+  .topbar { display: flex; align-items: center; justify-content: space-between; }
+  .topbar h1 { font-family: var(--font-display); font-size: 22px; font-weight: 300; letter-spacing: .01em; color: var(--text); }
+  .status-pill { display: flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 11px; border: 1px solid var(--border2); color: var(--muted); cursor: pointer; }
+  .status-pill.running { border-color: var(--ok); color: var(--ok); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .running .status-dot { animation: blink 1.4s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* Metrics */
+  .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .metric { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .9rem 1rem; }
+  .metric-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; letter-spacing: .04em; }
+  .metric-value { font-family: var(--font-display); font-size: 28px; font-weight: 300; color: var(--text); line-height: 1; }
+  .metric-value.alert { color: var(--warn); }
+
+  /* Panels */
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .panel-header { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1.25rem; border-bottom: 1px solid var(--border); }
+  .panel-title { font-size: 12px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+  .panel-body { padding: 1.25rem; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 5px; font-size: 12px; font-family: var(--font-mono); cursor: pointer; border: 1px solid var(--border2); background: transparent; color: var(--text); transition: all .15s; letter-spacing: .02em; }
+  .btn:hover { border-color: var(--border2); background: var(--surface2); }
+  .btn-ok { border-color: var(--ok); color: var(--ok); }
+  .btn-ok:hover { background: rgba(122,170,138,.12); }
+  .btn-danger { border-color: var(--danger); color: var(--danger); }
+  .btn-danger:hover { background: rgba(196,123,110,.12); }
+  .btn-accent { border-color: var(--accent); color: var(--accent); }
+  .btn-accent:hover { background: rgba(200,185,138,.1); }
+
+  /* Table */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th { font-size: 10px; color: var(--hint); letter-spacing: .08em; text-transform: uppercase; text-align: left; padding: .5rem 0; border-bottom: 1px solid var(--border); font-weight: 400; }
+  .data-table td { font-size: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table th:first-child, .data-table td:first-child { padding-left: 1.25rem; }
+  .data-table th:last-child, .data-table td:last-child { padding-right: 1.25rem; }
+
+  /* Score bar */
+  .score-wrap { display: flex; align-items: center; gap: 6px; }
+  .score-bar { width: 44px; height: 3px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 2px; background: var(--accent); }
+  .score-fill.high { background: var(--ok); }
+  .score-fill.low  { background: var(--muted); }
+
+  /* Status badges */
+  .badge { display: inline-flex; align-items: center; font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 10px; letter-spacing: .04em; }
+  .badge-sent    { background: rgba(122,170,138,.15); color: var(--ok); }
+  .badge-pending { background: rgba(196,164,110,.15); color: var(--warn); }
+  .badge-skip    { background: rgba(100,100,100,.15); color: var(--muted); }
+  .badge-reply   { background: rgba(122,171,196,.15); color: var(--blue); }
+
+  /* Site chip */
+  .chip { font-size: 10px; padding: 2px 7px; border-radius: 10px; border: 1px solid var(--border2); color: var(--muted); letter-spacing: .03em; }
+
+  /* Offer cards */
+  .offer-card { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 14px; transition: border-color .2s; }
+  .offer-card.top { border-color: rgba(200,185,138,.3); }
+  .offer-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 1rem 1.25rem; background: var(--surface2); gap: 12px; }
+  .offer-company { font-family: var(--font-display); font-size: 15px; font-weight: 300; color: var(--text); }
+  .offer-title { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .offer-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .score-big { font-family: var(--font-display); font-size: 22px; font-weight: 300; line-height: 1; white-space: nowrap; }
+  .score-big.high { color: var(--ok); }
+  .score-big.mid  { color: var(--warn); }
+  .offer-body { padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 10px; }
+  .ai-block { background: var(--surface2); border-radius: 6px; padding: .75rem 1rem; }
+  .ai-label { font-size: 10px; color: var(--hint); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 5px; }
+  .ai-text { font-size: 12px; color: var(--muted); line-height: 1.7; }
+  .lm-block { border: 1px solid var(--border); border-radius: 6px; }
+  .lm-block-header { display: flex; align-items: center; justify-content: space-between; padding: .6rem 1rem; border-bottom: 1px solid var(--border); }
+  .lm-block-title { font-size: 11px; color: var(--muted); letter-spacing: .04em; }
+  .lm-text { font-size: 12px; color: var(--text); line-height: 1.8; padding: .85rem 1rem; white-space: pre-wrap; outline: none; }
+  .lm-text[contenteditable="true"] { background: var(--surface2); }
+  .offer-actions { display: flex; gap: 8px; padding: .85rem 1.25rem; border-top: 1px solid var(--border); }
+  .offer-actions .spacer { flex: 1; }
+
+  /* Config form */
+  .cfg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 11px; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; }
+  .field input, .field select, .field textarea {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 5px;
+    color: var(--text); font-family: var(--font-mono); font-size: 12px;
+    padding: 7px 10px; outline: none; transition: border-color .15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+  .field textarea { resize: vertical; min-height: 70px; }
+  .site-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+  .site-card { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; }
+  .site-card.on { border-color: rgba(200,185,138,.35); }
+  .site-name { font-size: 12px; color: var(--muted); }
+  .toggle { width: 30px; height: 17px; border-radius: 9px; background: var(--surface2); border: 1px solid var(--border2); position: relative; cursor: pointer; transition: all .2s; flex-shrink: 0; }
+  .toggle.on { background: rgba(200,185,138,.3); border-color: var(--accent); }
+  .toggle::after { content:''; position: absolute; width: 11px; height: 11px; border-radius: 50%; background: var(--muted); top: 2px; left: 2px; transition: transform .2s, background .2s; }
+  .toggle.on::after { transform: translateX(13px); background: var(--accent); }
+
+  /* Logs */
+  .log-entry { display: flex; gap: 12px; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 11px; line-height: 1.5; }
+  .log-entry:last-child { border-bottom: none; }
+  .log-time { color: var(--hint); min-width: 58px; }
+  .log-msg { color: var(--muted); }
+  .log-success .log-msg { color: var(--ok); }
+  .log-warn .log-msg    { color: var(--warn); }
+  .log-error .log-msg   { color: var(--danger); }
+  .log-info .log-msg    { color: var(--blue); }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 2.5rem; color: var(--hint); font-size: 12px; line-height: 1.8; }
+
+  /* Notification toast */
+  .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--surface2); border: 1px solid var(--accent); border-radius: 8px; padding: .75rem 1.25rem; font-size: 12px; color: var(--accent); z-index: 999; animation: toastIn .3s ease; }
+  @keyframes toastIn { from{transform:translateY(10px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+  /* Mode info */
+  .mode-info { display: flex; align-items: flex-start; gap: 10px; padding: .9rem 1.25rem; background: rgba(200,185,138,.05); border: 1px solid rgba(200,185,138,.15); border-radius: 8px; }
+  .mode-info-icon { color: var(--accent); margin-top: 1px; font-size: 14px; }
+  .mode-info-text { font-size: 12px; color: var(--muted); line-height: 1.75; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo">Job<em>Bot</em></div>
+    <div class="nav-item active" data-tab="dashboard" onclick="nav('dashboard',this)">
+      <svg class="nav-icon" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" data-tab="review" onclick="nav('review',this)">
+      <svg class="nav-icon" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M7 4.5v3l1.5 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      À valider
+      <span class="nav-badge" id="queue-count" style="display:none">0</span>
+    </div>
+    <div class="nav-item" data-tab="candidatures" onclick="nav('candidatures',this)">
+      <svg class="nav-icon" viewBox="0 0 14 14" fill="none"><path d="M2 2h10a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.2"/><path d="M4 5h6M4 7.5h4M4 10h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      Candidatures
+    </div>
+    <div class="nav-item" data-tab="config" onclick="nav('config',this)">
+      <svg class="nav-icon" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2"/><path d="M7 1v2M7 11v2M1 7h2M11 7h2M2.93 2.93l1.41 1.41M9.66 9.66l1.41 1.41M2.93 11.07l1.41-1.41M9.66 4.34l1.41-1.41" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      Config
+    </div>
+    <div class="nav-item" data-tab="logs" onclick="nav('logs',this)">
+      <svg class="nav-icon" viewBox="0 0 14 14" fill="none"><path d="M1 3.5h12M1 7h8M1 10.5h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      Logs
+    </div>
+    <button class="bot-btn" id="bot-btn" onclick="toggleBot()">▶ Lancer le bot</button>
+    <a href="/logout" style="display:block;text-align:center;font-size:11px;color:var(--muted);text-decoration:none;padding:6px;margin-top:4px;letter-spacing:.04em;">Déconnexion</a>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div id="tab-dashboard">
+      <div class="topbar">
+        <h1>Dashboard</h1>
+        <div class="status-pill" id="status-pill" onclick="nav('logs',document.querySelector('[data-tab=logs]'))">
+          <span class="status-dot"></span>
+          <span id="status-label">Arrêté</span>
+        </div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">Offres analysées</div><div class="metric-value" id="m-scan">0</div></div>
+        <div class="metric"><div class="metric-label">En attente</div><div class="metric-value alert" id="m-pending">0</div></div>
+        <div class="metric"><div class="metric-label">Envoyées</div><div class="metric-value" id="m-sent">0</div></div>
+        <div class="metric"><div class="metric-label">Ignorées</div><div class="metric-value" id="m-skip">0</div></div>
+      </div>
+      <div class="mode-info">
+        <span class="mode-info-icon">◈</span>
+        <div class="mode-info-text">
+          Mode <strong style="color:var(--accent)">validation manuelle</strong> activé — le bot scrape les plateformes et analyse chaque offre avec Claude. Les offres retenues (score ≥ seuil) sont placées dans la file <em>"À valider"</em>. Tu lis l'analyse IA, édites la lettre si besoin, puis confirmes l'envoi. Aucune candidature ne part sans ta validation.
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Dernières décisions</span></div>
+        <table class="data-table">
+          <thead><tr><th>Poste</th><th>Entreprise</th><th>Site</th><th>Score</th><th>Décision</th><th>Date</th></tr></thead>
+          <tbody id="recent-decisions"><tr><td colspan="6" class="empty">Aucune décision pour l'instant.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REVIEW QUEUE -->
+    <div id="tab-review" style="display:none">
+      <div class="topbar">
+        <h1>À valider</h1>
+        <span style="font-size:12px;color:var(--muted)" id="queue-info">0 offre en attente</span>
+      </div>
+      <div id="queue-container"><div class="empty" style="padding:3rem">Aucune offre en attente.<br>Lance le bot pour commencer.</div></div>
+    </div>
+
+    <!-- CANDIDATURES -->
+    <div id="tab-candidatures" style="display:none">
+      <div class="topbar"><h1>Candidatures</h1></div>
+      <div class="panel">
+        <table class="data-table">
+          <thead><tr><th>Poste</th><th>Entreprise</th><th>Site</th><th>Score</th><th>Statut</th><th>Date</th></tr></thead>
+          <tbody id="all-apps"><tr><td colspan="6" class="empty">Aucune candidature.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CONFIG -->
+    <div id="tab-config" style="display:none">
+      <div class="topbar" style="margin-bottom:0"><h1>Configuration</h1></div>
+      <div class="cfg-grid">
+        <div style="display:flex;flex-direction:column;gap:1rem">
+          <div class="panel">
+            <div class="panel-header"><span class="panel-title">Profil & critères</span></div>
+            <div class="panel-body" style="display:flex;flex-direction:column;gap:.85rem">
+              <div class="field"><label>Poste cible</label><input id="c-poste" /></div>
+              <div class="field"><label>Localisation</label><input id="c-loc" /></div>
+              <div class="field"><label>Salaire min (€)</label><input id="c-sal" type="number" /></div>
+              <div class="field"><label>Score IA minimum</label>
+                <select id="c-score"><option value="6">6 / 10</option><option value="7">7 / 10</option><option value="8">8 / 10</option><option value="9">9 / 10</option></select>
+              </div>
+              <div class="field"><label>Résumé profil (pour les LM)</label><textarea id="c-profil" rows="4"></textarea></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1rem">
+          <div class="panel">
+            <div class="panel-header"><span class="panel-title">Lettre de motivation</span></div>
+            <div class="panel-body" style="display:flex;flex-direction:column;gap:.85rem">
+              <div class="field"><label>Ton de la LM</label>
+                <select id="c-tone">
+                  <option value="direct">Direct et factuel</option>
+                  <option value="formal">Formel et structuré</option>
+                  <option value="dynamic">Dynamique et engagé</option>
+                </select>
+              </div>
+              <div class="field"><label>Template de base (optionnel)</label><textarea id="c-lm" rows="5" placeholder="Laisse vide pour laisser Claude générer librement..."></textarea></div>
+              <div class="field"><label>CV (nom de fichier)</label><input id="c-cv" /></div>
+              <div class="field"><label>Fréquence (minutes)</label>
+                <select id="c-freq">
+                  <option value="60">Toutes les heures</option>
+                  <option value="180">Toutes les 3h</option>
+                  <option value="360">Toutes les 6h</option>
+                  <option value="1440">1x par jour</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Plateformes</span></div>
+        <div class="panel-body">
+          <div class="site-grid" id="site-grid"></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:.5rem">
+        <button class="btn" onclick="loadConfig()">Annuler</button>
+        <button class="btn btn-accent" onclick="saveConfig()">Sauvegarder</button>
+      </div>
+    </div>
+
+    <!-- LOGS -->
+    <div id="tab-logs" style="display:none">
+      <div class="topbar">
+        <h1>Logs</h1>
+        <button class="btn" onclick="document.getElementById('log-body').innerHTML=''">Effacer</button>
+      </div>
+      <div class="panel">
+        <div id="log-body" style="padding:1rem 1.25rem;max-height:520px;overflow-y:auto;display:flex;flex-direction:column;gap:1px"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script>
+// ─── Navigation ──────────────────────────────────────────────────────────────
+function nav(t, el) {
+  document.querySelectorAll('[id^="tab-"]').forEach(d => d.style.display = 'none');
+  document.getElementById('tab-' + t).style.display = '';
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+// ─── Toast ───────────────────────────────────────────────────────────────────
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ─── Poll status every 3s ────────────────────────────────────────────────────
+let lastLogId = 0;
+async function pollStatus() {
+  try {
+    const res = await fetch('/api/bot/status');
+    const data = await res.json();
+    updateDashboard(data);
+    appendLogs(data.logs);
+  } catch(e) {}
+}
+setInterval(pollStatus, 3000);
+pollStatus();
+
+function updateDashboard(data) {
+  const s = data.stats || {};
+  const total = s.total || 0;
+  const pending = s.pending || 0;
+  const sent = s.sent || 0;
+  const skipped = s.skipped || 0;
+
+  document.getElementById('m-scan').textContent = total;
+  document.getElementById('m-pending').textContent = pending;
+  document.getElementById('m-sent').textContent = sent;
+  document.getElementById('m-skip').textContent = skipped;
+
+  const qb = document.getElementById('queue-count');
+  if (pending > 0) { qb.style.display = ''; qb.textContent = pending; } else { qb.style.display = 'none'; }
+  document.getElementById('queue-info').textContent = pending + ' offre' + (pending > 1 ? 's' : '') + ' en attente';
+
+  const pill = document.getElementById('status-pill');
+  const label = document.getElementById('status-label');
+  const btn = document.getElementById('bot-btn');
+  if (data.running) {
+    pill.classList.add('running');
+    label.textContent = 'En cours';
+    btn.textContent = '■ Arrêter le bot';
+    btn.classList.add('running');
+  } else {
+    pill.classList.remove('running');
+    label.textContent = 'Arrêté';
+    btn.textContent = '▶ Lancer le bot';
+    btn.classList.remove('running');
+  }
+}
+
+function appendLogs(logs) {
+  const c = document.getElementById('log-body');
+  const newLogs = logs.filter(l => l.id > lastLogId);
+  if (!newLogs.length) return;
+  lastLogId = Math.max(...newLogs.map(l => l.id));
+  newLogs.reverse().forEach(l => {
+    const d = document.createElement('div');
+    d.className = 'log-entry log-' + l.level;
+    d.innerHTML = `<span class="log-time">${l.created_at}</span><span class="log-msg">${l.message}</span>`;
+    c.appendChild(d);
+  });
+  c.scrollTop = c.scrollHeight;
+}
+
+// ─── Bot toggle ──────────────────────────────────────────────────────────────
+async function toggleBot() {
+  const res = await fetch('/api/bot/status');
+  const data = await res.json();
+  if (data.running) {
+    await fetch('/api/bot/stop', { method: 'POST' });
+    toast('Bot arrêté.');
+  } else {
+    await fetch('/api/bot/start', { method: 'POST' });
+    toast('Bot démarré — scraping en cours...');
+  }
+  pollStatus();
+}
+
+// ─── Review queue ─────────────────────────────────────────────────────────────
+async function loadQueue() {
+  const res = await fetch('/api/offers/queue');
+  const offers = await res.json();
+  renderQueue(offers);
+}
+
+function renderQueue(offers) {
+  const c = document.getElementById('queue-container');
+  if (!offers.length) {
+    c.innerHTML = '<div class="empty" style="padding:3rem">Aucune offre en attente.<br>Lance le bot pour commencer.</div>';
+    return;
+  }
+  c.innerHTML = offers.map((o, i) => `
+    <div class="offer-card ${i === 0 ? 'top' : ''}" id="card-${o.id}">
+      <div class="offer-header">
+        <div>
+          <div class="offer-company">${o.company}</div>
+          <div class="offer-title">${o.title}</div>
+          <div class="offer-chips">
+            <span class="chip">${o.site}</span>
+            ${o.location ? `<span class="chip">${o.location}</span>` : ''}
+            ${o.salary ? `<span class="chip">${o.salary}</span>` : ''}
+            ${o.url ? `<a href="${o.url}" target="_blank" class="chip" style="color:var(--blue);border-color:rgba(122,171,196,.3);text-decoration:none">↗ voir l'offre</a>` : ''}
+          </div>
+        </div>
+        <div class="score-big ${o.score >= 8 ? 'high' : 'mid'}">${o.score}<span style="font-size:14px;color:var(--muted)">/10</span></div>
+      </div>
+      <div class="offer-body">
+        <div class="ai-block">
+          <div class="ai-label">Analyse IA</div>
+          <div class="ai-text">${o.ai_analysis || 'Analyse non disponible.'}</div>
+        </div>
+        <div class="lm-block">
+          <div class="lm-block-header">
+            <span class="lm-block-title">Lettre de motivation générée</span>
+            <div style="display:flex;gap:6px">
+              <button class="btn" style="font-size:11px;padding:4px 10px;" onclick="toggleEdit(${o.id})">Modifier</button>
+              <button class="btn" style="font-size:11px;padding:4px 10px;" onclick="regenLm(${o.id})">↺ Régénérer</button>
+            </div>
+          </div>
+          <div class="lm-text" id="lm-${o.id}" contenteditable="false">${o.lm_draft || ''}</div>
+        </div>
+      </div>
+      <div class="offer-actions">
+        <button class="btn btn-ok" onclick="validate(${o.id})">✓ Envoyer la candidature</button>
+        <div class="spacer"></div>
+        <button class="btn btn-danger" onclick="skip(${o.id})">Ignorer</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleEdit(id) {
+  const el = document.getElementById('lm-' + id);
+  const editing = el.contentEditable === 'true';
+  el.contentEditable = editing ? 'false' : 'true';
+  if (!editing) { el.focus(); el.style.outline = '1px solid rgba(200,185,138,.3)'; }
+  else { el.style.outline = 'none'; }
+}
+
+async function regenLm(id) {
+  const btn = event.target;
+  btn.textContent = '...';
+  btn.disabled = true;
+  const res = await fetch(`/api/offers/${id}/regenerate_lm`, { method: 'POST' });
+  const data = await res.json();
+  if (data.ok) {
+    document.getElementById('lm-' + id).textContent = data.lm;
+    toast('LM régénérée.');
+  }
+  btn.textContent = '↺ Régénérer';
+  btn.disabled = false;
+}
+
+async function validate(id) {
+  const lm = document.getElementById('lm-' + id).innerText;
+  await fetch(`/api/offers/${id}/validate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ lm })
+  });
+  document.getElementById('card-' + id).remove();
+  toast('Candidature envoyée !');
+  loadQueue();
+  loadAllApps();
+  loadDecisions();
+  pollStatus();
+}
+
+async function skip(id) {
+  await fetch(`/api/offers/${id}/skip`, { method: 'POST' });
+  document.getElementById('card-' + id).remove();
+  loadQueue();
+  loadDecisions();
+  pollStatus();
+}
+
+// ─── Candidatures ─────────────────────────────────────────────────────────────
+async function loadAllApps() {
+  const res = await fetch('/api/offers/all');
+  const offers = await res.json();
+  const sent = offers.filter(o => o.status === 'sent');
+  const tb = document.getElementById('all-apps');
+  tb.innerHTML = sent.length ? sent.map(o => `
+    <tr>
+      <td style="font-weight:400">${o.title}</td>
+      <td style="color:var(--muted)">${o.company}</td>
+      <td><span class="chip">${o.site}</span></td>
+      <td><div class="score-wrap"><div class="score-bar"><div class="score-fill ${o.score>=8?'high':''}" style="width:${o.score*10}%"></div></div>${o.score}/10</div></td>
+      <td><span class="badge badge-sent">Envoyé</span></td>
+      <td style="color:var(--hint)">${o.sent_at ? o.sent_at.split('T')[0] : ''}</td>
+    </tr>
+  `).join('') : '<tr><td colspan="6" class="empty">Aucune candidature envoyée.</td></tr>';
+}
+
+async function loadDecisions() {
+  const res = await fetch('/api/offers/all');
+  const offers = await res.json();
+  const decided = offers.filter(o => o.status !== 'pending').slice(0, 8);
+  const tb = document.getElementById('recent-decisions');
+  tb.innerHTML = decided.length ? decided.map(o => `
+    <tr>
+      <td>${o.title}</td>
+      <td style="color:var(--muted)">${o.company}</td>
+      <td><span class="chip">${o.site}</span></td>
+      <td>${o.score}/10</td>
+      <td><span class="badge ${o.status==='sent'?'badge-sent':'badge-skip'}">${o.status==='sent'?'Envoyé':'Ignoré'}</span></td>
+      <td style="color:var(--hint)">${(o.sent_at||o.created_at||'').split('T')[0]}</td>
+    </tr>
+  `).join('') : '<tr><td colspan="6" class="empty">Aucune décision pour l\'instant.</td></tr>';
+}
+
+// ─── Config ──────────────────────────────────────────────────────────────────
+const SITE_LABELS = { linkedin:'LinkedIn', indeed:'Indeed', wttj:'Welcome to the Jungle', apec:'APEC', cadremploi:'Cadremploi', hellowork:'HelloWork' };
+
+async function loadConfig() {
+  const res = await fetch('/api/config');
+  const c = await res.json();
+  document.getElementById('c-poste').value = c.poste_cible || '';
+  document.getElementById('c-loc').value = c.localisation || '';
+  document.getElementById('c-sal').value = c.salaire_min || '';
+  document.getElementById('c-score').value = c.score_min || 7;
+  document.getElementById('c-profil').value = c.profil_summary || '';
+  document.getElementById('c-tone').value = c.lm_tone || 'direct';
+  document.getElementById('c-lm').value = c.lm_template || '';
+  document.getElementById('c-cv').value = c.cv_path || '';
+  document.getElementById('c-freq').value = c.frequence_minutes || 180;
+  const sg = document.getElementById('site-grid');
+  sg.innerHTML = Object.entries(SITE_LABELS).map(([k, label]) => `
+    <div class="site-card ${c.sites[k] ? 'on' : ''}" id="site-${k}">
+      <span class="site-name">${label}</span>
+      <div class="toggle ${c.sites[k] ? 'on' : ''}" onclick="toggleSite('${k}')"></div>
+    </div>
+  `).join('');
+}
+
+function toggleSite(k) {
+  document.getElementById('site-' + k).classList.toggle('on');
+  document.querySelector(`#site-${k} .toggle`).classList.toggle('on');
+}
+
+async function saveConfig() {
+  const sites = {};
+  Object.keys(SITE_LABELS).forEach(k => { sites[k] = document.getElementById('site-' + k).classList.contains('on'); });
+  const config = {
+    poste_cible:     document.getElementById('c-poste').value,
+    localisation:    document.getElementById('c-loc').value,
+    salaire_min:     parseInt(document.getElementById('c-sal').value) || 0,
+    score_min:       parseInt(document.getElementById('c-score').value),
+    profil_summary:  document.getElementById('c-profil').value,
+    lm_tone:         document.getElementById('c-tone').value,
+    lm_template:     document.getElementById('c-lm').value,
+    cv_path:         document.getElementById('c-cv').value,
+    frequence_minutes: parseInt(document.getElementById('c-freq').value),
+    sites,
+    keywords: [],
+  };
+  await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config) });
+  toast('Configuration sauvegardée.');
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+loadConfig();
+loadAllApps();
+loadDecisions();
+
+// Reload queue when switching to review tab
+document.querySelector('[data-tab="review"]').addEventListener('click', loadQueue);
+document.querySelector('[data-tab="candidatures"]').addEventListener('click', loadAllApps);
+</script>
+</body>
+</html>

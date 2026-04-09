@@ -468,7 +468,7 @@ function renderQueue(offers) {
         </div>
       </div>
       <div class="offer-actions">
-        <button class="btn btn-ok" onclick="validate(${o.id})">✓ Envoyer la candidature</button>
+        <button class="btn btn-ok" onclick="validateAndOpen(${o.id}, '${o.url}')">✓ Valider & Postuler</button>
         <div class="spacer"></div>
         <button class="btn btn-danger" onclick="skip(${o.id})">Ignorer</button>
       </div>

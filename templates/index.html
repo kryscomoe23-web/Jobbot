@@ -512,7 +512,37 @@ async function validate(id) {
   loadDecisions();
   pollStatus();
 }
+async function validateAndOpen(id, url) {
+  const lm = document.getElementById('lm-' + id).innerText;
+  
+  // Copie la LM dans le presse-papier
+  try {
+    await navigator.clipboard.writeText(lm);
+    toast('LM copiée dans le presse-papier !');
+  } catch(e) {
+    toast('Copie manuelle : sélectionne la LM ci-dessus');
+  }
 
+  // Sauvegarde dans la DB
+  await fetch(`/api/offers/${id}/validate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ lm })
+  });
+
+  // Ouvre l'offre dans un nouvel onglet après 1 seconde
+  setTimeout(() => {
+    if (url && url !== 'undefined') {
+      window.open(url, '_blank');
+    }
+  }, 1000);
+
+  document.getElementById('card-' + id).remove();
+  loadQueue();
+  loadAllApps();
+  loadDecisions();
+  pollStatus();
+}
 async function skip(id) {
   await fetch(`/api/offers/${id}/skip`, { method: 'POST' });
   document.getElementById('card-' + id).remove();

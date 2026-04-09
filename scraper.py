@@ -18,9 +18,15 @@ HEADERS = {
 
 def scrape_all(config: dict) -> list:
     sites = config.get("sites", {})
-    keyword = config.get("poste_cible", "analyste crédit")
     location = config.get("localisation", "Paris")
+    
+    # Tous les intitulés à chercher
+    keywords_list = config.get("keywords_search", [
+        config.get("poste_cible", "analyste crédit")
+    ])
+    
     all_offers = []
+    seen_urls = set()
 
     scrapers = {
         "indeed":     scrape_indeed,
@@ -31,15 +37,21 @@ def scrape_all(config: dict) -> list:
         "linkedin":   scrape_linkedin,
     }
 
-    for key, fn in scrapers.items():
-        if not sites.get(key, False):
-            continue
-        try:
-            offers = fn(keyword, location)
-            all_offers.extend(offers)
-            time.sleep(random.uniform(1, 3))
-        except Exception as e:
-            print(f"[{key}] Erreur : {e}")
+    for keyword in keywords_list:
+        for key, fn in scrapers.items():
+            if not sites.get(key, False):
+                continue
+            try:
+                offers = fn(keyword, location)
+                for o in offers:
+                    url = o.get("url", "")
+                    if url and url in seen_urls:
+                        continue
+                    seen_urls.add(url)
+                    all_offers.append(o)
+                time.sleep(random.uniform(1, 3))
+            except Exception as e:
+                print(f"[{key}] Erreur : {e}")
 
     return all_offers
 

@@ -13,11 +13,15 @@ def get_db():
 
 def init_tables(conn):
     conn.executescript("""
-        CREATE TABLE IF NOT EXISTS offers (
+        DROP TABLE IF EXISTS offers;
+        DROP TABLE IF EXISTS logs;
+
+        CREATE TABLE offers (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             title       TEXT NOT NULL,
             company     TEXT NOT NULL,
             site        TEXT NOT NULL,
+            track       TEXT DEFAULT 'a',
             location    TEXT,
             salary      TEXT,
             url         TEXT UNIQUE,
@@ -29,7 +33,8 @@ def init_tables(conn):
             created_at  TEXT,
             sent_at     TEXT
         );
-        CREATE TABLE IF NOT EXISTS logs (
+
+        CREATE TABLE logs (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
             message    TEXT,
             level      TEXT DEFAULT 'info',

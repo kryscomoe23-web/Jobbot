@@ -25,7 +25,7 @@ Réponds UNIQUEMENT en JSON valide sans markdown :
 {{"score": <1-10>, "analysis": "<2-3 phrases en français>", "highlights": ["<point 1>", "<point 2>"]}}"""
 
     response = client.messages.create(
-        model="claude-sonnet-4-5",
+        model="claude-haiku-4-5-20251001",
         max_tokens=300,
         messages=[{"role": "user", "content": prompt}]
     )

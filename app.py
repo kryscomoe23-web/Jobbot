@@ -282,8 +282,8 @@ def bot_loop():
     db.commit()
 
 
+init_db()
 if __name__ == "__main__":
-    init_db()
     if not os.path.exists("config.json"):
         with open("config.json", "w") as f:
             json.dump(DEFAULT_CONFIG, f, indent=2, ensure_ascii=False)

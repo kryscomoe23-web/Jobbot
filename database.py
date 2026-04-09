@@ -13,10 +13,14 @@ def get_db():
 
 def init_tables(conn):
     conn.executescript("""
-        DROP TABLE IF EXISTS offers;
-        DROP TABLE IF EXISTS logs;
+        CREATE TABLE IF NOT EXISTS logs (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            message    TEXT,
+            level      TEXT DEFAULT 'info',
+            created_at TEXT
+        );
 
-        CREATE TABLE offers (
+        CREATE TABLE IF NOT EXISTS offers (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             title       TEXT NOT NULL,
             company     TEXT NOT NULL,
@@ -33,15 +37,14 @@ def init_tables(conn):
             created_at  TEXT,
             sent_at     TEXT
         );
-
-        CREATE TABLE logs (
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,
-            message    TEXT,
-            level      TEXT DEFAULT 'info',
-            created_at TEXT
-        );
     """)
-    conn.commit()
+
+    -- Ajoute la colonne track si elle manque (migration)
+    try:
+        conn.execute("ALTER TABLE offers ADD COLUMN track TEXT DEFAULT 'a'")
+        conn.commit()
+    except Exception:
+        pass
 
 
 def init_db():

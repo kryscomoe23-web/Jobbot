@@ -31,7 +31,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
 .running .dot{animation:blink 1.4s infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
+.metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;}
+.mv.good{color:var(--ok);}
+.bd{background:rgba(196,164,110,.15);color:var(--warn);}
+.bf{background:rgba(122,171,196,.15);color:var(--blue);}
+.br{background:rgba(122,170,138,.28);color:#a6d8b4;}
+.bx{background:rgba(196,123,110,.15);color:var(--danger);}
+.apply-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;}
+.st-sel{background:var(--surface2);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-family:var(--ff);font-size:11px;padding:3px 6px;}
+.cfg-status{font-size:11px;color:var(--muted);line-height:1.6;}
+.cfg-status .ok{color:var(--ok);} .cfg-status .ko{color:var(--warn);}
+.cfg-status a{color:var(--accent);}
 .metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;}
 .ml{font-size:11px;color:var(--muted);margin-bottom:6px;}
 .mv{font-family:var(--fm);font-size:28px;font-weight:300;line-height:1;}
@@ -155,8 +165,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
       <div class="metrics">
         <div class="metric"><div class="ml">Offres analysees</div><div class="mv" id="m-scan">0</div></div>
         <div class="metric"><div class="ml">En attente</div><div class="mv alert" id="m-pending">0</div></div>
+        <div class="metric"><div class="ml">Brouillons Gmail</div><div class="mv" id="m-drafts">0</div></div>
         <div class="metric"><div class="ml">Envoyees</div><div class="mv" id="m-sent">0</div></div>
-        <div class="metric"><div class="ml">Ignorees</div><div class="mv" id="m-skip">0</div></div>
+        <div class="metric"><div class="ml">Reponses</div><div class="mv good" id="m-replies">0</div></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="metric" style="border-color:rgba(122,171,196,.2);">
@@ -200,12 +211,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
           <button class="btn af" id="c-all" onclick="filterC('all',this)">Toutes</button>
           <button class="btn ca" id="c-a" onclick="filterC('a',this)">Banque</button>
           <button class="btn cb" id="c-b" onclick="filterC('b',this)">Conseil</button>
+          <button class="btn btn-ok" id="chk-btn" onclick="checkGmail(this)">&#8635; Verifier Gmail</button>
           <a href="/api/offers/export" class="btn btn-accent">&#8595; Exporter CSV</a>
         </div>
       </div>
+      <div style="font-size:11px;color:var(--hint);line-height:1.7;margin:.75rem 0 1rem;">
+        Le bot detecte seul les brouillons envoyes, les reponses du recruteur, et prepare un brouillon de relance apres le delai choisi (onglet Config).
+        Il verifie a chaque session ; le bouton ci-dessus force la verification. Tu peux aussi changer un statut a la main.
+      </div>
       <div class="panel">
         <table class="dt">
-          <thead><tr><th>Poste</th><th>Entreprise</th><th>Piste</th><th>Site</th><th>Score</th><th>Statut</th><th>Date</th></tr></thead>
+          <thead><tr><th>Poste</th><th>Entreprise</th><th>Piste</th><th>Score</th><th>Statut</th><th>Envoyee</th><th>Relance</th></tr></thead>
           <tbody id="all-apps"><tr><td colspan="7" class="empty">Aucune candidature.</td></tr></tbody>
         </table>
       </div>
@@ -266,6 +282,41 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
           <div style="padding:1.25rem;"><div class="site-grid" id="site-grid"></div></div>
         </div>
       </div>
+      <div class="cfg2">
+        <div class="panel">
+          <div class="ph"><span class="pt">Candidat</span></div>
+          <div style="padding:1.25rem;display:flex;flex-direction:column;gap:.85rem;">
+            <div class="field"><label>Nom complet</label><input id="c-nom" placeholder="Prenom Nom" /></div>
+            <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;">
+              <div class="field"><label>Email (sur la LM)</label><input id="c-email" placeholder="ton adresse Gmail par defaut" /></div>
+              <div class="field"><label>Telephone</label><input id="c-tel" /></div>
+            </div>
+            <div class="field"><label>CV (PDF, joint a chaque candidature)</label>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <input type="file" id="c-cv" accept="application/pdf" style="display:none" onchange="uploadCv(this)" />
+                <button class="btn" onclick="document.getElementById('c-cv').click()">Choisir le PDF</button>
+                <span class="cfg-status" id="cv-status">...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><span class="pt">Gmail et relances</span></div>
+          <div style="padding:1.25rem;display:flex;flex-direction:column;gap:.85rem;">
+            <div class="cfg-status" id="gmail-status">...</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end;">
+              <div class="field"><label>Relance si pas de reponse apres</label>
+                <select id="c-relance"><option value="5">5 jours</option><option value="7">7 jours</option><option value="10">10 jours</option><option value="14">14 jours</option></select>
+              </div>
+              <button class="btn" onclick="testGmail(this)">Tester la connexion Gmail</button>
+            </div>
+            <div class="field"><label>Texte du mail de candidature</label>
+              <textarea id="c-mail" rows="6"></textarea>
+              <span style="font-size:10px;color:var(--hint)">Variables : {poste} {entreprise} {nom} {telephone} {email}</span>
+            </div>
+          </div>
+        </div>
+      </div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:.25rem;">
         <button class="btn" onclick="loadConfig()">Annuler</button>
         <button class="btn btn-accent" onclick="saveConfig()">Sauvegarder</button>
@@ -303,7 +354,8 @@ async function pollStatus(){
     document.getElementById('m-scan').textContent=s.total||0;
     document.getElementById('m-pending').textContent=s.pending||0;
     document.getElementById('m-sent').textContent=s.sent||0;
-    document.getElementById('m-skip').textContent=s.skipped||0;
+    document.getElementById('m-drafts').textContent=s.drafts||0;
+    document.getElementById('m-replies').textContent=s.replies||0;
     document.getElementById('m-pa').textContent=s.pending_a||0;
     document.getElementById('m-pb').textContent=s.pending_b||0;
     const pend=s.pending||0;
@@ -349,29 +401,36 @@ function renderQ(){
     const isA=o.track==='a';
     return '<div class="offer-card '+(i===0?(isA?'ta':'tb'):'')+'" id="card-'+o.id+'">'
       +'<div class="oh"><div>'
-      +'<div class="oc">'+o.company+'</div>'
-      +'<div class="ot">'+o.title+'</div>'
+      +'<div class="oc">'+esc(o.company)+'</div>'
+      +'<div class="ot">'+esc(o.title)+'</div>'
       +'<div class="ochips">'
       +'<span class="chip '+(isA?'ca':'cb')+'">'+(isA?'Banque':'Conseil')+'</span>'
-      +'<span class="chip">'+o.site+'</span>'
-      +(o.location?'<span class="chip">'+o.location+'</span>':'')
-      +(o.salary?'<span class="chip">'+o.salary+'</span>':'')
-      +(o.url?'<a href="'+o.url+'" target="_blank" class="chip ca" style="text-decoration:none">voir</a>':'')
+      +'<span class="chip">'+esc(o.site)+'</span>'
+      +(o.location?'<span class="chip">'+esc(o.location)+'</span>':'')
+      +(o.salary?'<span class="chip">'+esc(o.salary)+'</span>':'')
+      +(o.url?'<a href="'+esc(o.url)+'" target="_blank" rel="noopener" class="chip ca" style="text-decoration:none">voir</a>':'')
       +'</div></div>'
       +'<div class="sb '+(o.score>=8?'hi':'mi')+'">'+o.score+'<span style="font-size:13px;color:var(--muted)">/10</span></div>'
       +'</div>'
       +'<div class="ob">'
-      +'<div class="ai-block"><div class="ail">Analyse IA</div><div class="ait">'+(o.ai_analysis||'N/A')+'</div></div>'
+      +'<div class="ai-block"><div class="ail">Analyse IA</div><div class="ait">'+esc(o.ai_analysis||'N/A')+'</div></div>'
       +'<div class="lm-block">'
       +'<div class="lmh"><span class="lmt-label">Lettre de motivation</span>'
       +'<div style="display:flex;gap:6px;">'
       +'<button class="btn" style="font-size:11px;padding:3px 9px;" onclick="toggleEdit('+o.id+')">Modifier</button>'
       +'<button class="btn" style="font-size:11px;padding:3px 9px;" onclick="regenLm('+o.id+',this)">Regenerer</button>'
       +'</div></div>'
-      +'<div class="lm-text" id="lm-'+o.id+'" contenteditable="false">'+(o.lm_draft||'')+'</div>'
+      +'<div class="lm-text" id="lm-'+o.id+'" contenteditable="false">'+esc(o.lm_draft||'')+'</div>'
+      +'</div>'
+      +'<div class="apply-grid">'
+      +'<div class="field"><label>Email du recruteur'+(o.contact_email?' (trouve dans l\'offre)':'')+'</label>'
+      +'<input id="to-'+o.id+'" value="'+esc(o.contact_email||'')+'" placeholder="vide = a completer dans Gmail" /></div>'
+      +'<div class="field"><label>Objet du mail</label><input id="subj-'+o.id+'" value="'+esc(o.default_subject||'')+'" /></div>'
       +'</div></div>'
       +'<div class="oa">'
-      +'<button class="btn btn-ok" onclick="valAndOpen('+o.id+',\''+encodeURIComponent(o.url||'')+'\')">Valider et Postuler</button>'
+      +'<button class="btn btn-ok" onclick="makeDraft('+o.id+',this)">&#9993; Creer le brouillon Gmail</button>'
+      +'<button class="btn" onclick="valAndOpen('+o.id+',\''+encodeURIComponent(o.url||'')+'\')" title="Copie la LM et ouvre l\'offre pour postuler sur le site">Postuler sur le site</button>'
+      +'<button class="btn" onclick="downloadPdf('+o.id+')" title="Lettre de motivation en PDF">PDF</button>'
       +'<div class="sp"></div>'
       +'<button class="btn btn-danger" onclick="skipOffer('+o.id+')">Ignorer</button>'
       +'</div></div>';
@@ -399,6 +458,33 @@ async function valAndOpen(id,encodedUrl){
   allQ=allQ.filter(o=>o.id!==id);
   renderQ();loadDec();pollStatus();
 }
+function removeCard(id){
+  document.getElementById('card-'+id)?.remove();
+  allQ=allQ.filter(o=>o.id!==id);
+  renderQ();loadDec();pollStatus();
+}
+async function makeDraft(id,btn){
+  const body={lm:document.getElementById('lm-'+id).innerText,
+    email:document.getElementById('to-'+id).value.trim(),
+    subject:document.getElementById('subj-'+id).value.trim()};
+  const orig=btn.innerHTML;btn.textContent='Creation...';btn.disabled=true;
+  try{
+    const r=await fetch('/api/offers/'+id+'/draft',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!d.ok){toast(d.error||'Erreur.');btn.innerHTML=orig;btn.disabled=false;return;}
+    toast(body.email?'Brouillon cree dans Gmail - relis et envoie !':'Brouillon cree - ajoute le destinataire dans Gmail.');
+    removeCard(id);
+  }catch(e){toast('Erreur reseau.');btn.innerHTML=orig;btn.disabled=false;}
+}
+async function downloadPdf(id){
+  const r=await fetch('/api/offers/'+id+'/lm_pdf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lm:document.getElementById('lm-'+id).innerText})});
+  if(!r.ok){const d=await r.json().catch(()=>({}));toast(d.error||'Erreur PDF.');return;}
+  const blob=await r.blob();
+  const cd=r.headers.get('Content-Disposition')||'';
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=(cd.match(/filename=([^;]+)/)||[,'lettre_motivation.pdf'])[1];
+  document.body.appendChild(a);a.click();a.remove();
+}
 async function skipOffer(id){
   await fetch('/api/offers/'+id+'/skip',{method:'POST'});
   document.getElementById('card-'+id)?.remove();
@@ -406,24 +492,55 @@ async function skipOffer(id){
   renderQ();loadDec();pollStatus();
 }
 
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+const ST={draft:['Brouillon Gmail','bd'],sent:['Envoyee','bs'],followup:['Relancee','bf'],replied:['Reponse recue','br'],
+  interview:['Entretien','br'],offer:['Offre !','br'],rejected:['Refus','bx'],skipped:['Ignoree','bk'],pending:['A valider','bk']};
+const APPLIED=['draft','sent','followup','replied','interview','offer','rejected'];
+let RELANCE_J=7;
+function fmtD(s){if(!s)return '';const d=new Date(s);return isNaN(d)?s.split('T')[0]:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});}
+
 let allC=[],cF='all';
 async function loadCand(){
   const all=await fetch('/api/offers/all').then(r=>r.json());
-  allC=all.filter(o=>o.status==='sent');renderC();
+  allC=all.filter(o=>APPLIED.includes(o.status));renderC();
 }
 function filterC(f,el){cF=f;document.querySelectorAll('[id^="c-"]').forEach(b=>b.classList.remove('af'));el.classList.add('af');renderC();}
+function relanceCell(o){
+  if(o.status==='followup')return '<span style="color:var(--blue)">faite le '+fmtD(o.followup_at)+'</span>';
+  if(o.status!=='sent'||!o.sent_at)return '<span style="color:var(--hint)">-</span>';
+  const due=new Date(new Date(o.sent_at).getTime()+RELANCE_J*864e5);
+  const late=due<new Date();
+  const how=o.contact_email?'auto':'a la main';
+  return '<span style="color:'+(late?'var(--warn)':'var(--hint)')+'">'+(late?'a faire':'le '+due.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}))+' ('+how+')</span>';
+}
 function renderC(){
   const items=cF==='all'?allC:allC.filter(o=>o.track===cF);
   const tb=document.getElementById('all-apps');
   tb.innerHTML=items.length?items.map(o=>{
     const isA=o.track==='a';
-    return '<tr><td style="font-weight:400">'+o.title+'</td><td style="color:var(--muted)">'+o.company+'</td>'
+    const opts=APPLIED.map(s=>'<option value="'+s+'"'+(s===o.status?' selected':'')+'>'+ST[s][0]+'</option>').join('');
+    return '<tr><td style="font-weight:400">'+(o.url?'<a href="'+esc(o.url)+'" target="_blank" rel="noopener" style="color:inherit">'+esc(o.title)+'</a>':esc(o.title))
+      +'<div style="font-size:10px;color:var(--hint)">'+esc(o.site)+(o.contact_email?' · '+esc(o.contact_email):'')+'</div></td>'
+      +'<td style="color:var(--muted)">'+esc(o.company)+'</td>'
       +'<td><span class="chip '+(isA?'ca':'cb')+'">'+(isA?'Banque':'Conseil')+'</span></td>'
-      +'<td><span class="chip">'+o.site+'</span></td>'
       +'<td>'+o.score+'/10</td>'
-      +'<td><span class="badge bs">Envoye</span></td>'
-      +'<td style="color:var(--hint)">'+(o.sent_at||'').split('T')[0]+'</td></tr>';
-  }).join(''):'<tr><td colspan="7" class="empty">Aucune candidature.</td></tr>';
+      +'<td><select class="st-sel" onchange="setStatus('+o.id+',this.value)">'+opts+'</select></td>'
+      +'<td style="color:var(--hint)">'+(o.status==='draft'?'<span style="color:var(--warn)">a envoyer</span>':fmtD(o.sent_at))+'</td>'
+      +'<td style="font-size:11px">'+relanceCell(o)+'</td></tr>';
+  }).join(''):'<tr><td colspan="7" class="empty">Aucune candidature pour l\'instant.<br>Valide une offre depuis « A valider ».</td></tr>';
+}
+async function setStatus(id,status){
+  const d=await fetch('/api/offers/'+id+'/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})}).then(r=>r.json());
+  toast(d.ok?'Statut mis a jour.':(d.error||'Erreur.'));
+  loadCand();loadDec();pollStatus();
+}
+async function checkGmail(btn){
+  const orig=btn.innerHTML;btn.textContent='Verification...';btn.disabled=true;
+  try{
+    const d=await fetch('/api/followups/check',{method:'POST'}).then(r=>r.json());
+    toast(d.ok?(d.envois+' envoi(s) detecte(s), '+d.reponses+' reponse(s), '+d.relances+' relance(s) preparee(s).'):(d.error||'Erreur.'));
+  }catch(e){toast('Erreur reseau.');}
+  btn.innerHTML=orig;btn.disabled=false;loadCand();loadDec();pollStatus();
 }
 
 async function loadDec(){
@@ -431,12 +548,34 @@ async function loadDec(){
   const dec=all.filter(o=>o.status!=='pending').slice(0,8);
   const tb=document.getElementById('recent-dec');
   tb.innerHTML=dec.length?dec.map(o=>{
-    const isA=o.track==='a';
-    return '<tr><td>'+o.title+'</td><td style="color:var(--muted)">'+o.company+'</td>'
+    const isA=o.track==='a';const st=ST[o.status]||[o.status,'bk'];
+    return '<tr><td>'+esc(o.title)+'</td><td style="color:var(--muted)">'+esc(o.company)+'</td>'
       +'<td><span class="chip '+(isA?'ca':'cb')+'">'+(isA?'Banque':'Conseil')+'</span></td>'
       +'<td>'+o.score+'/10</td>'
-      +'<td><span class="badge '+(o.status==='sent'?'bs':'bk')+'">'+(o.status==='sent'?'Envoye':'Ignore')+'</span></td></tr>';
+      +'<td><span class="badge '+st[1]+'">'+st[0]+'</span></td></tr>';
   }).join(''):'<tr><td colspan="5" class="empty">Aucune decision.</td></tr>';
+}
+
+async function loadCandStatus(){
+  const s=await fetch('/api/candidature/status').then(r=>r.json());
+  document.getElementById('cv-status').innerHTML=s.cv.exists
+    ?'<span class="ok">&#10003; CV enregistre ('+s.cv.size_kb+' Ko)</span>'
+    :'<span class="ko">Aucun CV : obligatoire pour les brouillons Gmail</span>';
+  document.getElementById('gmail-status').innerHTML=s.gmail_configured
+    ?'<span class="ok">&#10003; Gmail configure : '+esc(s.gmail_address)+'</span><br>Les brouillons arrivent dans tes Brouillons Gmail. Rien n\'est envoye sans toi.'
+    :'<span class="ko">Gmail non configure.</span> Cree un <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">mot de passe d\'application Google</a> '
+     +'(validation en 2 etapes requise), puis ajoute dans le fichier <b>.env</b> :<br><code>GMAIL_ADDRESS=ton.adresse@gmail.com</code><br><code>GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx</code><br>et relance « Lancer JobBot.bat ».';
+}
+async function uploadCv(input){
+  if(!input.files.length)return;
+  const fd=new FormData();fd.append('cv',input.files[0]);
+  const d=await fetch('/api/cv',{method:'POST',body:fd}).then(r=>r.json()).catch(()=>({ok:false,error:'Erreur reseau.'}));
+  toast(d.ok?'CV enregistre.':(d.error||'Erreur.'));input.value='';loadCandStatus();
+}
+async function testGmail(btn){
+  const orig=btn.textContent;btn.textContent='Test...';btn.disabled=true;
+  const d=await fetch('/api/gmail/test',{method:'POST'}).then(r=>r.json()).catch(()=>({ok:false,error:'Erreur reseau.'}));
+  toast(d.ok?d.message:d.error);btn.textContent=orig;btn.disabled=false;
 }
 
 const SITES={linkedin:'LinkedIn',efinancial:'eFinancialCareers',hellowork:'HelloWork',francetravail:'France Travail (API)'};
@@ -459,6 +598,13 @@ async function loadConfig(){
   document.getElementById('c-tone').value=c.lm_tone||'direct';
   document.getElementById('c-profil').value=c.profil_summary||'';
   document.getElementById('c-lm').value=c.lm_template||'';
+  document.getElementById('c-nom').value=c.candidat_nom||'';
+  document.getElementById('c-email').value=c.candidat_email||'';
+  document.getElementById('c-tel').value=c.candidat_tel||'';
+  document.getElementById('c-relance').value=String(c.relance_jours||7);
+  document.getElementById('c-mail').value=c.email_template||'';
+  RELANCE_J=c.relance_jours||7;
+  loadCandStatus();
   const sg=document.getElementById('site-grid');
   sg.innerHTML=Object.entries(SITES).map(([k,label])=>
     '<div class="site-card '+(c.sites?.[k]?'on':'')+'" id="site-'+k+'">'
@@ -480,11 +626,20 @@ async function saveConfig(){
     lm_tone:document.getElementById('c-tone').value,
     lm_template:document.getElementById('c-lm').value,
     profil_summary:document.getElementById('c-profil').value,
+    candidat_nom:document.getElementById('c-nom').value.trim(),
+    candidat_email:document.getElementById('c-email').value.trim(),
+    candidat_tel:document.getElementById('c-tel').value.trim(),
+    relance_jours:parseInt(document.getElementById('c-relance').value)||7,
+    email_template:document.getElementById('c-mail').value,
     sites,
     track_a:{enabled:document.getElementById('ta-tog').classList.contains('on'),label:document.getElementById('ta-label').value,keywords:kw('ta-kw'),score_min:parseInt(document.getElementById('ta-sc').value),salaire_min:parseInt(document.getElementById('ta-sal').value)||0},
     track_b:{enabled:document.getElementById('tb-tog').classList.contains('on'),label:document.getElementById('tb-label').value,keywords:kw('tb-kw'),score_min:parseInt(document.getElementById('tb-sc').value),salaire_min:parseInt(document.getElementById('tb-sal').value)||0},
   };
   const res=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(config)}).then(r=>r.json());
+  RELANCE_J=config.relance_jours;
+  document.getElementById('label-a').textContent='Piste A - '+config.track_a.label;
+  document.getElementById('label-b').textContent='Piste B - '+config.track_b.label;
+  if(!res.cloud){toast('Config sauvegardee.');return;}
   try{await navigator.clipboard.writeText(res.json_to_save);toast('Config sauvegardee - JSON copie !');}
   catch(e){toast('Config sauvegardee.');}
   const rem=document.getElementById('cfg-reminder');

@@ -12,6 +12,7 @@ from database import get_db, init_db
 from scorer import score_offer
 from lm_generator import generate_lm
 from scraper import scrape_all
+import candidature as cand
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "jobbot-secret-change-me")
@@ -27,6 +28,11 @@ DEFAULT_CONFIG = {
     "lm_template": "",
     "profil_summary": "3 ans analyste credit, IFCIC + BPI France. Expertise financement structure, analyse LBO, DSCR/LLCR, covenants, SPV.",
     "ft_departement": "75",
+    "candidat_nom": "",
+    "candidat_email": "",
+    "candidat_tel": "",
+    "relance_jours": 7,
+    "email_template": cand.DEFAULT_EMAIL_TEMPLATE,
     "sites": {
         "linkedin": True, "efinancial": True,
         "hellowork": True, "francetravail": True
@@ -60,17 +66,32 @@ DEFAULT_CONFIG = {
 }
 
 
+def _read_config_file():
+    with open("config.json", "rb") as f:
+        raw = f.read()
+    try:
+        return json.loads(raw.decode("utf-8"))
+    except UnicodeDecodeError:
+        return json.loads(raw.decode("cp1252"))  # anciens fichiers ecrits sous Windows
+
+
+def write_config(config):
+    with open("config.json", "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
+
+
 def load_config():
+    loaded = None
     env_config = os.environ.get("BOT_CONFIG")
     if env_config:
         try:
-            return json.loads(env_config)
+            loaded = json.loads(env_config)
         except Exception:
             pass
-    if os.path.exists("config.json"):
-        with open("config.json") as f:
-            return json.load(f)
-    return DEFAULT_CONFIG.copy()
+    if loaded is None and os.path.exists("config.json"):
+        loaded = _read_config_file()
+    # Les cles ajoutees dans les nouvelles versions prennent leur valeur par defaut
+    return {**json.loads(json.dumps(DEFAULT_CONFIG)), **(loaded or {})}
 
 
 def add_log(db, message, level="info"):
@@ -141,7 +162,9 @@ def bot_status():
         SELECT
             COUNT(*) as total,
             SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) as pending,
-            SUM(CASE WHEN status='sent' THEN 1 ELSE 0 END) as sent,
+            SUM(CASE WHEN status IN ('sent','followup','replied','interview','rejected','offer') THEN 1 ELSE 0 END) as sent,
+            SUM(CASE WHEN status='draft' THEN 1 ELSE 0 END) as drafts,
+            SUM(CASE WHEN status IN ('replied','interview','offer') THEN 1 ELSE 0 END) as replies,
             SUM(CASE WHEN status='skipped' THEN 1 ELSE 0 END) as skipped,
             SUM(CASE WHEN status='pending' AND track='a' THEN 1 ELSE 0 END) as pending_a,
             SUM(CASE WHEN status='pending' AND track='b' THEN 1 ELSE 0 END) as pending_b
@@ -159,9 +182,14 @@ def bot_status():
 @login_required
 def get_queue():
     db = get_db()
-    return jsonify([dict(o) for o in db.execute(
-        "SELECT * FROM offers WHERE status='pending' ORDER BY score DESC, created_at DESC"
-    ).fetchall()])
+    config = load_config()
+    offers = []
+    for o in db.execute("SELECT * FROM offers WHERE status='pending' ORDER BY score DESC, created_at DESC").fetchall():
+        d = dict(o)
+        d["contact_email"] = d.get("contact_email") or cand.extract_email(d.get("description"))
+        d["default_subject"] = cand.default_subject(d, config)
+        offers.append(d)
+    return jsonify(offers)
 
 
 @app.route("/api/offers/all")
@@ -169,7 +197,7 @@ def get_queue():
 def get_all_offers():
     db = get_db()
     return jsonify([dict(o) for o in db.execute(
-        "SELECT * FROM offers ORDER BY created_at DESC LIMIT 200"
+        "SELECT * FROM offers WHERE status != 'low' ORDER BY created_at DESC LIMIT 300"
     ).fetchall()])
 
 
@@ -178,18 +206,19 @@ def get_all_offers():
 def export_offers():
     db = get_db()
     offers = db.execute(
-        "SELECT title, company, site, track, location, salary, url, score, ai_analysis, lm_draft, status, created_at FROM offers ORDER BY score DESC"
+        "SELECT * FROM offers WHERE status != 'low' ORDER BY score DESC"
     ).fetchall()
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Poste", "Entreprise", "Site", "Piste", "Lieu", "Salaire", "URL", "Score", "Analyse IA", "LM generee", "Statut", "Date"])
+    writer.writerow(["Poste", "Entreprise", "Site", "Piste", "Lieu", "Salaire", "URL", "Score", "Analyse IA",
+                     "LM", "Statut", "Email recruteur", "Trouvee le", "Envoyee le", "Relance le", "Reponse le"])
     for o in offers:
         writer.writerow([
             o["title"], o["company"], o["site"],
             "Banque" if o["track"] == "a" else "Conseil",
             o["location"], o["salary"], o["url"],
-            o["score"], o["ai_analysis"], o["lm_draft"],
-            o["status"], o["created_at"]
+            o["score"], o["ai_analysis"], o["lm_final"] or o["lm_draft"],
+            o["status"], o["contact_email"], o["created_at"], o["sent_at"], o["followup_at"], o["replied_at"]
         ])
     output.seek(0)
     return Response(
@@ -211,6 +240,114 @@ def validate_offer(offer_id):
     offer = db.execute("SELECT * FROM offers WHERE id=?", (offer_id,)).fetchone()
     add_log(db, "[" + offer["site"] + "] Envoyee -> " + offer["company"] + " (" + offer["title"] + ")", "success")
     return jsonify({"ok": True})
+
+
+@app.route("/api/offers/<int:offer_id>/draft", methods=["POST"])
+@login_required
+def create_draft(offer_id):
+    """Cree le brouillon Gmail (CV + LM en PDF) ; l'envoi reste manuel dans Gmail."""
+    db = get_db()
+    offer = db.execute("SELECT * FROM offers WHERE id=?", (offer_id,)).fetchone()
+    if not offer:
+        return jsonify({"ok": False, "error": "Offre introuvable."}), 404
+    data = request.json or {}
+    config = load_config()
+    lm = data.get("lm") or offer["lm_draft"] or ""
+    to = (data.get("email") or "").strip()
+    subject = (data.get("subject") or "").strip() or cand.default_subject(dict(offer), config)
+    try:
+        cand.create_application_draft(dict(offer), config, lm, to, subject)
+    except cand.CandidatureError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"ok": False, "error": "Erreur inattendue : " + str(e)}), 500
+    db.execute(
+        "UPDATE offers SET status='draft', lm_final=?, contact_email=?, email_subject=?, draft_at=? WHERE id=?",
+        (lm, to, subject, datetime.now().isoformat(timespec="seconds"), offer_id)
+    )
+    db.commit()
+    add_log(db, "[Gmail] Brouillon cree -> " + offer["company"] + (" (" + to + ")" if to else " (destinataire a completer)"), "success")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/offers/<int:offer_id>/lm_pdf", methods=["POST"])
+@login_required
+def lm_pdf(offer_id):
+    db = get_db()
+    offer = db.execute("SELECT * FROM offers WHERE id=?", (offer_id,)).fetchone()
+    if not offer:
+        return jsonify({"ok": False, "error": "Offre introuvable."}), 404
+    config = load_config()
+    lm = (request.json or {}).get("lm") or offer["lm_final"] or offer["lm_draft"] or ""
+    try:
+        pdf = cand.build_lm_pdf(dict(offer), lm, config)
+    except cand.CandidatureError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return Response(pdf, mimetype="application/pdf", headers={
+        "Content-Disposition": "attachment; filename=" + cand.lm_filename(dict(offer), config)})
+
+
+STATUSES = {"pending", "draft", "sent", "followup", "replied", "interview", "rejected", "offer", "skipped"}
+
+
+@app.route("/api/offers/<int:offer_id>/status", methods=["POST"])
+@login_required
+def set_status(offer_id):
+    status = (request.json or {}).get("status")
+    if status not in STATUSES:
+        return jsonify({"ok": False, "error": "Statut inconnu."}), 400
+    db = get_db()
+    now = datetime.now().isoformat(timespec="seconds")
+    db.execute("UPDATE offers SET status=? WHERE id=?", (status, offer_id))
+    if status in ("sent", "followup", "replied", "interview", "rejected", "offer"):
+        db.execute("UPDATE offers SET sent_at=COALESCE(sent_at, ?) WHERE id=?", (now, offer_id))
+    if status in ("replied", "interview", "offer"):
+        db.execute("UPDATE offers SET replied_at=COALESCE(replied_at, ?) WHERE id=?", (now, offer_id))
+    db.commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/followups/check", methods=["POST"])
+@login_required
+def followups_check():
+    db = get_db()
+    try:
+        res = cand.check_followups(db, load_config(), log=lambda m, lvl="info": add_log(db, m, lvl))
+    except cand.CandidatureError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify({"ok": True, **res})
+
+
+@app.route("/api/candidature/status")
+@login_required
+def candidature_status():
+    return jsonify({
+        "gmail_configured": cand.gmail_configured(),
+        "gmail_address": os.environ.get("GMAIL_ADDRESS", ""),
+        "cv": cand.cv_info(),
+    })
+
+
+@app.route("/api/gmail/test", methods=["POST"])
+@login_required
+def gmail_test():
+    try:
+        return jsonify({"ok": True, "message": cand.test_gmail()})
+    except cand.CandidatureError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/cv", methods=["POST"])
+@login_required
+def upload_cv():
+    f = request.files.get("cv")
+    if not f:
+        return jsonify({"ok": False, "error": "Aucun fichier recu."}), 400
+    try:
+        cand.save_cv(f.read())
+    except cand.CandidatureError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify({"ok": True, "cv": cand.cv_info()})
 
 
 @app.route("/api/offers/<int:offer_id>/skip", methods=["POST"])
@@ -253,10 +390,11 @@ def get_config():
 @app.route("/api/config", methods=["POST"])
 @login_required
 def save_config():
-    config = request.json
-    with open("config.json", "w") as f:
-        json.dump(config, f, indent=2, ensure_ascii=False)
-    return jsonify({"ok": True, "json_to_save": json.dumps(config, ensure_ascii=False)})
+    # Fusion : les reglages absents du formulaire (ex. ft_departement) sont conserves
+    config = {**load_config(), **(request.json or {})}
+    write_config(config)
+    return jsonify({"ok": True, "cloud": bool(os.environ.get("RAILWAY_ENVIRONMENT")),
+                    "json_to_save": json.dumps(config, ensure_ascii=False)})
 
 
 def bot_loop():
@@ -296,19 +434,33 @@ def bot_loop():
                 scored = score_offer(offer, tc)
                 score = scored.get("score", 0)
                 add_log(db, "Score " + str(score) + "/10 - " + offer["company"], "success" if score >= score_min else "info")
-                if score >= score_min:
-                    lm = generate_lm(offer, tc)
-                    db.execute(
-                        "INSERT OR IGNORE INTO offers (title, company, site, track, location, salary, url, score, ai_analysis, lm_draft, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)",
-                        (offer["title"], offer["company"], offer["site"], track,
-                         offer.get("location", ""), offer.get("salary", ""), offer.get("url", ""),
-                         score, scored.get("analysis", ""), lm, datetime.now().isoformat())
-                    )
-                    db.commit()
+                keep = score >= score_min
+                lm = generate_lm(offer, tc) if keep else ""
+                description = offer.get("description", "")
+                # Les offres sous le seuil sont gardees (statut 'low') pour ne pas etre re-notees a chaque session
+                db.execute(
+                    "INSERT OR IGNORE INTO offers (title, company, site, track, location, salary, url, score, ai_analysis, lm_draft, status, created_at, description, contact_email) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (offer["title"], offer["company"], offer["site"], track,
+                     offer.get("location", ""), offer.get("salary", ""), offer.get("url", ""),
+                     score, scored.get("analysis", ""), lm, "pending" if keep else "low",
+                     datetime.now().isoformat(), description,
+                     offer.get("contact_email") or cand.extract_email(description))
+                )
+                db.commit()
+                if keep:
                     add_log(db, "[" + label + "] -> File de validation : " + offer["company"], "success")
                 time.sleep(random.uniform(2, 4))
         except Exception as e:
             add_log(db, "Erreur : " + str(e), "error")
+
+        if cand.gmail_configured() and bot_state["running"]:
+            try:
+                res = cand.check_followups(db, config, log=lambda m, lvl="info": add_log(db, m, lvl))
+                if any(res.values()):
+                    add_log(db, "[Suivi] " + str(res["envois"]) + " envoi(s), " + str(res["reponses"]) + " reponse(s), "
+                            + str(res["relances"]) + " relance(s)", "info")
+            except Exception as e:
+                add_log(db, "[Suivi] Erreur Gmail : " + str(e), "error")
 
         wait = config.get("frequence_minutes", 180) * 60
         add_log(db, "Session terminee. Prochaine dans " + str(config.get("frequence_minutes", 180)) + " min.", "info")
@@ -322,8 +474,7 @@ def bot_loop():
 
 init_db()
 if not os.path.exists("config.json"):
-    with open("config.json", "w") as f:
-        json.dump(DEFAULT_CONFIG, f, indent=2, ensure_ascii=False)
+    write_config(DEFAULT_CONFIG)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

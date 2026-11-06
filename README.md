@@ -32,6 +32,33 @@ patiente une fois puis le met de côté jusqu'à la session suivante.
 En local, les offres (`jobbot.db`) et la config (`config.json`) sont conservées d'une fois
 sur l'autre, et l'interface n'est accessible que depuis ton PC.
 
+## Candidatures par Gmail (brouillons, suivi, relances)
+
+Pour chaque offre validée, le bot prépare la candidature, mais **c'est toi qui envoies** :
+
+1. **Brouillon Gmail** : bouton « Créer le brouillon Gmail ». Le brouillon contient ton CV,
+   la lettre de motivation en PDF (en-tête, date, objet) et un court message. Le destinataire
+   est pré-rempli quand l'offre contient l'email du recruteur ; sinon tu le complètes dans Gmail.
+2. **Suivi automatique** à chaque session du bot (ou bouton « Vérifier Gmail ») :
+   - brouillon envoyé → statut « Envoyée » ;
+   - email reçu de l'adresse du recruteur → « Réponse reçue » ;
+   - pas de réponse après N jours (5, 7, 10 ou 14) → brouillon de relance, dans le même fil.
+3. Statuts modifiables à la main : Entretien, Refus, Offre…
+
+Pour les offres sans email (formulaire en ligne) : « Postuler sur le site » copie la LM et
+ouvre l'offre, et « PDF » télécharge la lettre à joindre.
+
+### Configuration (une seule fois)
+
+1. Active la validation en 2 étapes de ton compte Google, puis crée un
+   **mot de passe d'application** : https://myaccount.google.com/apppasswords
+2. Dans `.env` : `GMAIL_ADDRESS=...` et `GMAIL_APP_PASSWORD=...` (16 lettres), puis relance le bot.
+3. Onglet Config : nom, téléphone, **CV en PDF**, délai de relance, texte du mail.
+   Le bouton « Tester la connexion Gmail » vérifie que tout est prêt.
+
+Le bot n'utilise Gmail que pour créer des brouillons et lire les en-têtes nécessaires au suivi :
+il n'envoie jamais rien lui-même.
+
 ## Activer France Travail (gratuit, 10 min)
 
 1. Crée un compte sur https://francetravail.io (espace « Développeur »).

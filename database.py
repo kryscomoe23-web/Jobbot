@@ -38,11 +38,21 @@ def init_tables(conn):
             sent_at     TEXT
         );
     """)
-    try:
-        conn.execute("ALTER TABLE offers ADD COLUMN track TEXT DEFAULT 'a'")
-        conn.commit()
-    except Exception:
-        pass
+    # Colonnes ajoutees au fil des versions (migration sans perte des offres existantes)
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(offers)")}
+    for col, decl in [
+        ("track", "TEXT DEFAULT 'a'"),
+        ("description", "TEXT"),
+        ("contact_email", "TEXT"),
+        ("email_subject", "TEXT"),
+        ("draft_at", "TEXT"),
+        ("sent_message_id", "TEXT"),
+        ("followup_at", "TEXT"),
+        ("replied_at", "TEXT"),
+    ]:
+        if col not in existing:
+            conn.execute("ALTER TABLE offers ADD COLUMN " + col + " " + decl)
+    conn.commit()
 
 
 def init_db():

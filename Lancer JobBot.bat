@@ -16,13 +16,16 @@ if "%ANTHROPIC_API_KEY%"=="" (
   exit /b 1
 )
 
+set FIRST=0
 if not exist "venv\Scripts\python.exe" (
+  set FIRST=1
   echo  Premiere installation, patiente une minute...
   py -m venv venv
   if errorlevel 1 goto :nopython
-  venv\Scripts\python.exe -m pip install -q --disable-pip-version-check -r requirements.txt
-  if errorlevel 1 goto :pipfail
 )
+rem Installe aussi les nouvelles dependances apres une mise a jour du bot
+venv\Scripts\python.exe -m pip install -q --disable-pip-version-check -r requirements.txt
+if errorlevel 1 if "%FIRST%"=="1" goto :pipfail
 
 set HOST=127.0.0.1
 set PORT=5000

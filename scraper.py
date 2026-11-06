@@ -248,6 +248,7 @@ def scrape_francetravail(s, keyword, location, cfg):
     offers = []
     for j in r.json().get("resultats", []):
         origine = (j.get("origineOffre") or {}).get("urlOrigine")
+        contact = (j.get("contact") or {}).get("courriel") or ""
         offers.append({
             "title": j.get("intitule", ""),
             "company": (j.get("entreprise") or {}).get("nom") or "N/A",
@@ -255,7 +256,8 @@ def scrape_francetravail(s, keyword, location, cfg):
             "salary": (j.get("salaire") or {}).get("libelle", ""),
             "url": origine or "https://candidat.francetravail.fr/offres/recherche/detail/" + str(j.get("id", "")),
             "site": "France Travail",
-            "description": (j.get("description") or "")[:DESC_MAX],
+            # le courriel de contact (quand il existe) est ajoute pour que l'email du recruteur soit detecte
+            "description": ((j.get("description") or "")[:DESC_MAX] + ("\nContact : " + contact if contact else "")),
         })
     return offers
 

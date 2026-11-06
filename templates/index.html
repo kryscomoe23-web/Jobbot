@@ -5,157 +5,143 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JobBot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;1,9..144,300&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#0d0f11;--surface:#13161a;--surface2:#1a1e24;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);--text:#e8e4dc;--muted:#7a7870;--hint:#4a4845;--accent:#c8b98a;--ok:#7aaa8a;--danger:#c47b6e;--warn:#c4a46e;--blue:#7aabc4;--ta:#8fb5a0;--tb:#9aabc8;--font-display:'Fraunces',Georgia,serif;--font-mono:'DM Mono',monospace;}
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-  html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:13px;}
-  .shell{display:flex;height:100vh;}
-  .sidebar{width:200px;min-width:200px;border-right:1px solid var(--border);display:flex;flex-direction:column;padding:1.5rem 1rem;gap:2px;}
-  .main{flex:1;overflow-y:auto;padding:2rem;display:flex;flex-direction:column;gap:1.5rem;}
-  .logo{font-family:var(--font-display);font-size:20px;font-weight:300;color:var(--text);padding:0 .5rem 1.25rem;border-bottom:1px solid var(--border);margin-bottom:.75rem;}
-  .logo em{font-style:italic;color:var(--accent);}
-  .nav-sec{font-size:10px;color:var(--hint);letter-spacing:.08em;text-transform:uppercase;padding:8px 10px 4px;margin-top:6px;}
-  .nav-item{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s;}
-  .nav-item:hover{background:var(--surface2);color:var(--text);}
-  .nav-item.active{background:var(--surface2);color:var(--text);}
-  .nav-icon{width:14px;height:14px;opacity:.7;flex-shrink:0;}
-  .nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;}
-  .nav-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-left:auto;}
-  .dot-a{background:var(--ta);}
-  .dot-b{background:var(--tb);}
-  .bot-btn{margin-top:auto;padding:9px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text);font-family:var(--font-mono);font-size:12px;cursor:pointer;transition:all .2s;text-align:center;}
-  .bot-btn:hover{border-color:var(--accent);color:var(--accent);}
-  .bot-btn.running{border-color:var(--danger);color:var(--danger);}
-  .topbar{display:flex;align-items:center;justify-content:space-between;}
-  .topbar h1{font-family:var(--font-display);font-size:22px;font-weight:300;color:var(--text);}
-  .status-pill{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:11px;border:1px solid var(--border2);color:var(--muted);}
-  .status-pill.running{border-color:var(--ok);color:var(--ok);}
-  .status-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
-  .running .status-dot{animation:blink 1.4s infinite;}
-  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-  .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
-  .metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;}
-  .metric-label{font-size:11px;color:var(--muted);margin-bottom:6px;}
-  .metric-value{font-family:var(--font-display);font-size:28px;font-weight:300;color:var(--text);line-height:1;}
-  .metric-value.alert{color:var(--warn);}
-  .panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
-  .panel-header{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.25rem;border-bottom:1px solid var(--border);}
-  .panel-title{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;}
-  .btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:5px;font-size:12px;font-family:var(--font-mono);cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text);transition:all .15s;}
-  .btn:hover{background:var(--surface2);}
-  .btn-ok{border-color:var(--ok);color:var(--ok);}
-  .btn-ok:hover{background:rgba(122,170,138,.12);}
-  .btn-danger{border-color:var(--danger);color:var(--danger);}
-  .btn-danger:hover{background:rgba(196,123,110,.12);}
-  .btn-accent{border-color:var(--accent);color:var(--accent);}
-  .btn-accent:hover{background:rgba(200,185,138,.1);}
-  .data-table{width:100%;border-collapse:collapse;}
-  .data-table th{font-size:10px;color:var(--hint);letter-spacing:.08em;text-transform:uppercase;text-align:left;padding:.5rem 0;border-bottom:1px solid var(--border);font-weight:400;}
-  .data-table td{font-size:12px;padding:9px 0;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
-  .data-table tr:last-child td{border-bottom:none;}
-  .data-table th:first-child,.data-table td:first-child{padding-left:1.25rem;}
-  .data-table th:last-child,.data-table td:last-child{padding-right:1.25rem;}
-  .badge{display:inline-flex;font-size:10px;font-weight:500;padding:2px 8px;border-radius:10px;}
-  .badge-sent{background:rgba(122,170,138,.15);color:var(--ok);}
-  .badge-skip{background:rgba(100,100,100,.15);color:var(--muted);}
-  .badge-pending{background:rgba(196,164,110,.15);color:var(--warn);}
-  .chip{font-size:10px;padding:2px 7px;border-radius:10px;border:1px solid var(--border2);color:var(--muted);}
-  .chip-a{background:rgba(143,181,160,.12);color:var(--ta);border-color:rgba(143,181,160,.3);}
-  .chip-b{background:rgba(154,171,200,.12);color:var(--tb);border-color:rgba(154,171,200,.3);}
-  .track-tabs{display:flex;gap:8px;}
-  .ttab{padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;border:1px solid var(--border);color:var(--muted);transition:all .15s;}
-  .ttab:hover{background:var(--surface2);}
-  .ttab.on{border-color:var(--border2);color:var(--text);background:var(--surface2);}
-  .ttab.on-a{border-color:rgba(143,181,160,.4);color:var(--ta);background:rgba(143,181,160,.08);}
-  .ttab.on-b{border-color:rgba(154,171,200,.4);color:var(--tb);background:rgba(154,171,200,.08);}
-  .offer-card{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;}
-  .offer-card.ta{border-left:3px solid rgba(143,181,160,.5);}
-  .offer-card.tb{border-left:3px solid rgba(154,171,200,.5);}
-  .offer-header{display:flex;align-items:flex-start;justify-content:space-between;padding:1rem 1.25rem;background:var(--surface2);gap:12px;}
-  .offer-company{font-family:var(--font-display);font-size:15px;font-weight:300;}
-  .offer-title{font-size:12px;color:var(--muted);margin-top:2px;}
-  .offer-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
-  .score-big{font-family:var(--font-display);font-size:22px;font-weight:300;line-height:1;white-space:nowrap;}
-  .score-big.hi{color:var(--ok);}
-  .score-big.md{color:var(--warn);}
-  .offer-body{padding:1rem 1.25rem;display:flex;flex-direction:column;gap:10px;}
-  .ai-block{background:var(--surface2);border-radius:6px;padding:.75rem 1rem;}
-  .ai-lbl{font-size:10px;color:var(--hint);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;}
-  .ai-txt{font-size:12px;color:var(--muted);line-height:1.7;}
-  .lm-block{border:1px solid var(--border);border-radius:6px;}
-  .lm-hdr{display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;border-bottom:1px solid var(--border);}
-  .lm-txt{font-size:12px;color:var(--text);line-height:1.8;padding:.85rem 1rem;white-space:pre-wrap;outline:none;}
-  .lm-txt[contenteditable="true"]{background:var(--surface2);}
-  .offer-actions{display:flex;gap:8px;padding:.85rem 1.25rem;border-top:1px solid var(--border);}
-  .offer-actions .sp{flex:1;}
-  .cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
-  .field{display:flex;flex-direction:column;gap:5px;}
-  .field label{font-size:11px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;}
-  .field input,.field select,.field textarea{background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--font-mono);font-size:12px;padding:7px 10px;outline:none;transition:border-color .15s;}
-  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
-  .field textarea{resize:vertical;min-height:80px;}
-  .tc-box{border-radius:8px;overflow:hidden;}
-  .tc-hdr{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.25rem;border-bottom:1px solid var(--border);}
-  .tc-title{font-size:13px;font-weight:500;}
-  .tc-body{padding:1.25rem;display:flex;flex-direction:column;gap:.85rem;border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;}
-  .toggle{width:30px;height:17px;border-radius:9px;background:var(--surface2);border:1px solid var(--border2);position:relative;cursor:pointer;transition:all .2s;flex-shrink:0;}
-  .toggle.on{background:rgba(200,185,138,.3);border-color:var(--accent);}
-  .toggle::after{content:'';position:absolute;width:11px;height:11px;border-radius:50%;background:var(--muted);top:2px;left:2px;transition:transform .2s,background .2s;}
-  .toggle.on::after{transform:translateX(13px);background:var(--accent);}
-  .site-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
-  .site-card{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--border);border-radius:6px;}
-  .site-card.on{border-color:rgba(200,185,138,.35);}
-  .site-name{font-size:12px;color:var(--muted);}
-  .log-entry{display:flex;gap:12px;padding:4px 0;border-bottom:1px solid var(--border);font-size:11px;}
-  .log-entry:last-child{border-bottom:none;}
-  .log-time{color:var(--hint);min-width:58px;}
-  .log-msg{color:var(--muted);}
-  .log-success .log-msg{color:var(--ok);}
-  .log-warn .log-msg{color:var(--warn);}
-  .log-error .log-msg{color:var(--danger);}
-  .log-info .log-msg{color:var(--blue);}
-  .empty{text-align:center;padding:2.5rem;color:var(--hint);font-size:12px;line-height:1.8;}
-  .toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--surface2);border:1px solid var(--accent);border-radius:8px;padding:.75rem 1.25rem;font-size:12px;color:var(--accent);z-index:999;animation:ti .3s ease;}
-  @keyframes ti{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
-  ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+:root{--bg:#0d0f11;--surface:#13161a;--surface2:#1a1e24;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);--text:#e8e4dc;--muted:#7a7870;--hint:#4a4845;--accent:#c8b98a;--blue:#7aabc4;--ok:#7aaa8a;--danger:#c47b6e;--warn:#c4a46e;--fm:'Fraunces',Georgia,serif;--ff:'DM Mono',monospace;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--ff);font-size:13px;}
+.shell{display:flex;height:100vh;}
+.sidebar{width:200px;min-width:200px;border-right:1px solid var(--border);display:flex;flex-direction:column;padding:1.5rem 1rem;gap:2px;}
+.main{flex:1;overflow-y:auto;padding:2rem;display:flex;flex-direction:column;gap:1.5rem;}
+.logo{font-family:var(--fm);font-size:20px;font-weight:300;padding:0 .5rem 1.25rem;border-bottom:1px solid var(--border);margin-bottom:.75rem;}
+.logo em{font-style:italic;color:var(--accent);}
+.nav-item{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s;}
+.nav-item:hover,.nav-item.active{background:var(--surface2);color:var(--text);}
+.ni{width:14px;height:14px;opacity:.7;flex-shrink:0;}
+.nb{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;}
+.bot-btn{margin-top:auto;padding:9px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text);font-family:var(--ff);font-size:12px;cursor:pointer;transition:all .2s;text-align:center;}
+.bot-btn:hover{border-color:var(--accent);color:var(--accent);}
+.bot-btn.running{border-color:var(--danger);color:var(--danger);}
+.logout-link{display:block;text-align:center;font-size:11px;color:var(--hint);text-decoration:none;padding:6px;margin-top:4px;}
+.logout-link:hover{color:var(--muted);}
+.topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.topbar h1{font-family:var(--fm);font-size:22px;font-weight:300;}
+.pill{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:11px;border:1px solid var(--border2);color:var(--muted);cursor:pointer;}
+.pill.running{border-color:var(--ok);color:var(--ok);}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.running .dot{animation:blink 1.4s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;}
+.ml{font-size:11px;color:var(--muted);margin-bottom:6px;}
+.mv{font-family:var(--fm);font-size:28px;font-weight:300;line-height:1;}
+.mv.alert{color:var(--warn);}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.25rem;border-bottom:1px solid var(--border);}
+.pt{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:5px;font-size:12px;font-family:var(--ff);cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text);transition:all .15s;text-decoration:none;}
+.btn:hover{background:var(--surface2);}
+.btn.af{border-color:var(--accent);color:var(--accent);}
+.btn-ok{border-color:var(--ok);color:var(--ok);}
+.btn-ok:hover{background:rgba(122,170,138,.12);}
+.btn-danger{color:var(--danger);border-color:rgba(196,123,110,.4);}
+.btn-danger:hover{background:rgba(196,123,110,.1);}
+.btn-accent{border-color:var(--accent);color:var(--accent);}
+.btn-accent:hover{background:rgba(200,185,138,.1);}
+.dt{width:100%;border-collapse:collapse;}
+.dt th{font-size:10px;color:var(--hint);letter-spacing:.08em;text-transform:uppercase;text-align:left;padding:.5rem 0;border-bottom:1px solid var(--border);font-weight:400;}
+.dt td{font-size:12px;padding:9px 0;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
+.dt tr:last-child td{border-bottom:none;}
+.dt th:first-child,.dt td:first-child{padding-left:1.25rem;}
+.dt th:last-child,.dt td:last-child{padding-right:1.25rem;}
+.badge{display:inline-flex;font-size:10px;font-weight:500;padding:2px 8px;border-radius:10px;}
+.bs{background:rgba(122,170,138,.15);color:var(--ok);}
+.bk{background:rgba(100,100,100,.15);color:var(--muted);}
+.chip{font-size:10px;padding:2px 7px;border-radius:10px;border:1px solid var(--border2);color:var(--muted);}
+.ca{border-color:rgba(122,171,196,.35);color:var(--blue);}
+.cb{border-color:rgba(200,185,138,.35);color:var(--accent);}
+.offer-card{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;}
+.offer-card.ta{border-color:rgba(122,171,196,.3);}
+.offer-card.tb{border-color:rgba(200,185,138,.3);}
+.oh{display:flex;align-items:flex-start;justify-content:space-between;padding:1rem 1.25rem;background:var(--surface2);gap:12px;}
+.oc{font-family:var(--fm);font-size:15px;font-weight:300;}
+.ot{font-size:12px;color:var(--muted);margin-top:2px;}
+.ochips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.sb{font-family:var(--fm);font-size:22px;font-weight:300;line-height:1;white-space:nowrap;}
+.sb.hi{color:var(--ok);}
+.sb.mi{color:var(--warn);}
+.ob{padding:1rem 1.25rem;display:flex;flex-direction:column;gap:10px;}
+.ai-block{background:var(--surface2);border-radius:6px;padding:.75rem 1rem;}
+.ail{font-size:10px;color:var(--hint);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;}
+.ait{font-size:12px;color:var(--muted);line-height:1.7;}
+.lm-block{border:1px solid var(--border);border-radius:6px;}
+.lmh{display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;border-bottom:1px solid var(--border);}
+.lmt-label{font-size:11px;color:var(--muted);}
+.lm-text{font-size:12px;color:var(--text);line-height:1.8;padding:.85rem 1rem;white-space:pre-wrap;outline:none;}
+.lm-text[contenteditable="true"]{background:var(--surface2);outline:1px solid rgba(200,185,138,.3);}
+.oa{display:flex;gap:8px;padding:.85rem 1.25rem;border-top:1px solid var(--border);}
+.sp{flex:1;}
+.empty{text-align:center;padding:2.5rem;color:var(--hint);font-size:12px;line-height:1.8;}
+.log-entry{display:flex;gap:12px;padding:4px 0;border-bottom:1px solid var(--border);font-size:11px;}
+.log-entry:last-child{border-bottom:none;}
+.log-time{color:var(--hint);min-width:58px;}
+.log-msg{color:var(--muted);}
+.log-success .log-msg{color:var(--ok);}
+.log-warn .log-msg{color:var(--warn);}
+.log-error .log-msg{color:var(--danger);}
+.log-info .log-msg{color:var(--blue);}
+.cfg2{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:11px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;}
+.field input,.field select,.field textarea{background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--ff);font-size:12px;padding:7px 10px;outline:none;transition:border-color .15s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+.field textarea{resize:vertical;min-height:90px;}
+.tc{border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.tch{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.25rem;background:var(--surface2);border-bottom:1px solid var(--border);}
+.tci{background:transparent;border:none;color:var(--text);font-family:var(--fm);font-size:16px;font-weight:300;outline:none;flex:1;}
+.tcb{padding:1.25rem;display:flex;flex-direction:column;gap:.85rem;}
+.tw{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);}
+.toggle{width:32px;height:18px;border-radius:9px;background:var(--surface2);border:1px solid var(--border2);position:relative;cursor:pointer;transition:all .2s;flex-shrink:0;}
+.toggle.on{background:rgba(200,185,138,.25);border-color:var(--accent);}
+.toggle::after{content:'';position:absolute;width:12px;height:12px;border-radius:50%;background:var(--muted);top:2px;left:2px;transition:transform .2s,background .2s;}
+.toggle.on::after{transform:translateX(14px);background:var(--accent);}
+.site-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.site-card{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--border);border-radius:6px;}
+.site-card.on{border-color:rgba(200,185,138,.3);}
+.sn{font-size:12px;color:var(--muted);}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--surface2);border:1px solid var(--accent);border-radius:8px;padding:.75rem 1.25rem;font-size:12px;color:var(--accent);z-index:999;animation:ti .3s ease;}
+@keyframes ti{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 </style>
 </head>
 <body>
 <div class="shell">
   <div class="sidebar">
     <div class="logo">Job<em>Bot</em></div>
-    <div class="nav-sec">Vue globale</div>
     <div class="nav-item active" data-tab="dashboard" onclick="nav('dashboard',this)">
-      <svg class="nav-icon" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/></svg>
+      <svg class="ni" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/></svg>
       Dashboard
     </div>
-    <div class="nav-sec">Pistes</div>
-    <div class="nav-item" data-tab="track-a" onclick="nav('track-a',this)">
-      <span class="nav-dot dot-a"></span>Banque / Crédit
-    </div>
-    <div class="nav-item" data-tab="track-b" onclick="nav('track-b',this)">
-      <span class="nav-dot dot-b"></span>Conseil / M&A
-    </div>
-    <div class="nav-sec">Outils</div>
     <div class="nav-item" data-tab="review" onclick="nav('review',this)">
-      <svg class="nav-icon" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M7 4.5v3l1.5 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-      À valider<span class="nav-badge" id="queue-count" style="display:none">0</span>
+      <svg class="ni" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M7 4.5v3l1.5 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      A valider
+      <span class="nb" id="queue-count" style="display:none">0</span>
     </div>
     <div class="nav-item" data-tab="candidatures" onclick="nav('candidatures',this)">
-      <svg class="nav-icon" viewBox="0 0 14 14" fill="none"><path d="M2 2h10a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.2"/><path d="M4 5h6M4 7.5h4M4 10h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <svg class="ni" viewBox="0 0 14 14" fill="none"><path d="M2 2h10a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.2"/><path d="M4 5h6M4 7.5h4M4 10h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
       Candidatures
     </div>
     <div class="nav-item" data-tab="config" onclick="nav('config',this)">
-      <svg class="nav-icon" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2"/><path d="M7 1v2M7 11v2M1 7h2M11 7h2M2.93 2.93l1.41 1.41M9.66 9.66l1.41 1.41M2.93 11.07l1.41-1.41M9.66 4.34l1.41-1.41" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <svg class="ni" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2"/><path d="M7 1v2M7 11v2M1 7h2M11 7h2M2.93 2.93l1.41 1.41M9.66 9.66l1.41 1.41M2.93 11.07l1.41-1.41M9.66 4.34l1.41-1.41" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
       Config
     </div>
     <div class="nav-item" data-tab="logs" onclick="nav('logs',this)">
-      <svg class="nav-icon" viewBox="0 0 14 14" fill="none"><path d="M1 3.5h12M1 7h8M1 10.5h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <svg class="ni" viewBox="0 0 14 14" fill="none"><path d="M1 3.5h12M1 7h8M1 10.5h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
       Logs
     </div>
-    <button class="bot-btn" id="bot-btn" onclick="toggleBot()">▶ Lancer le bot</button>
-    <a href="/logout" style="display:block;text-align:center;font-size:11px;color:var(--muted);text-decoration:none;padding:6px;margin-top:4px;">Déconnexion</a>
+    <button class="bot-btn" id="bot-btn" onclick="toggleBot()">&#9654; Lancer le bot</button>
+    <a href="/logout" class="logout-link">Deconnexion</a>
   </div>
 
   <div class="main">
@@ -164,56 +150,61 @@
     <div id="tab-dashboard">
       <div class="topbar">
         <h1>Dashboard</h1>
-        <div class="status-pill" id="status-pill"><span class="status-dot"></span><span id="status-label">Arrêté</span></div>
+        <div class="pill" id="status-pill"><span class="dot"></span><span id="status-label">Arrete</span></div>
       </div>
       <div class="metrics">
-        <div class="metric"><div class="metric-label">Offres analysées</div><div class="metric-value" id="m-scan">0</div></div>
-        <div class="metric"><div class="metric-label">En attente</div><div class="metric-value alert" id="m-pending">0</div></div>
-        <div class="metric"><div class="metric-label">Envoyées</div><div class="metric-value" id="m-sent">0</div></div>
-        <div class="metric"><div class="metric-label">Ignorées</div><div class="metric-value" id="m-skip">0</div></div>
+        <div class="metric"><div class="ml">Offres analysees</div><div class="mv" id="m-scan">0</div></div>
+        <div class="metric"><div class="ml">En attente</div><div class="mv alert" id="m-pending">0</div></div>
+        <div class="metric"><div class="ml">Envoyees</div><div class="mv" id="m-sent">0</div></div>
+        <div class="metric"><div class="ml">Ignorees</div><div class="mv" id="m-skip">0</div></div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;">
-        <div class="panel">
-          <div class="panel-header"><span class="panel-title">Banque / Crédit</span><span class="chip chip-a" id="cnt-a">0 offres</span></div>
-          <table class="data-table"><thead><tr><th>Poste</th><th>Entreprise</th><th>Score</th><th>Statut</th></tr></thead><tbody id="list-a"><tr><td colspan="4" class="empty" style="padding:1rem">Aucune offre.</td></tr></tbody></table>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="metric" style="border-color:rgba(122,171,196,.2);">
+          <div class="ml" style="color:var(--blue)" id="label-a">Piste A - Banque</div>
+          <div class="mv" id="m-pa" style="color:var(--blue)">0</div>
+          <div style="font-size:11px;color:var(--hint);margin-top:4px">offres a valider</div>
         </div>
-        <div class="panel">
-          <div class="panel-header"><span class="panel-title">Conseil / M&A</span><span class="chip chip-b" id="cnt-b">0 offres</span></div>
-          <table class="data-table"><thead><tr><th>Poste</th><th>Entreprise</th><th>Score</th><th>Statut</th></tr></thead><tbody id="list-b"><tr><td colspan="4" class="empty" style="padding:1rem">Aucune offre.</td></tr></tbody></table>
+        <div class="metric" style="border-color:rgba(200,185,138,.2);">
+          <div class="ml" style="color:var(--accent)" id="label-b">Piste B - Conseil</div>
+          <div class="mv" id="m-pb" style="color:var(--accent)">0</div>
+          <div style="font-size:11px;color:var(--hint);margin-top:4px">offres a valider</div>
         </div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span class="pt">Dernieres decisions</span></div>
+        <table class="dt">
+          <thead><tr><th>Poste</th><th>Entreprise</th><th>Piste</th><th>Score</th><th>Decision</th></tr></thead>
+          <tbody id="recent-dec"><tr><td colspan="5" class="empty">Aucune decision.</td></tr></tbody>
+        </table>
       </div>
     </div>
 
-    <!-- TRACK A -->
-    <div id="tab-track-a" style="display:none">
-      <div class="topbar"><h1 style="color:var(--ta)">Banque / Crédit</h1><span style="font-size:12px;color:var(--muted)" id="ta-info">0 offre</span></div>
-      <div id="ta-cont"><div class="empty">Lance le bot pour voir les offres.</div></div>
-    </div>
-
-    <!-- TRACK B -->
-    <div id="tab-track-b" style="display:none">
-      <div class="topbar"><h1 style="color:var(--tb)">Conseil / M&A</h1><span style="font-size:12px;color:var(--muted)" id="tb-info">0 offre</span></div>
-      <div id="tb-cont"><div class="empty">Lance le bot pour voir les offres.</div></div>
-    </div>
-
-    <!-- À VALIDER -->
+    <!-- REVIEW -->
     <div id="tab-review" style="display:none">
-      <div class="topbar"><h1>À valider</h1><span style="font-size:12px;color:var(--muted)" id="queue-info">0 offre</span></div>
-      <div id="queue-cont"><div class="empty">Aucune offre en attente.</div></div>
+      <div class="topbar">
+        <h1>A valider</h1>
+        <div style="display:flex;gap:6px;">
+          <button class="btn af" id="f-all" onclick="filterQ('all',this)">Toutes</button>
+          <button class="btn ca" id="f-a" onclick="filterQ('a',this)">Banque</button>
+          <button class="btn cb" id="f-b" onclick="filterQ('b',this)">Conseil</button>
+        </div>
+      </div>
+      <div id="queue-container"><div class="empty">Aucune offre en attente.</div></div>
     </div>
 
     <!-- CANDIDATURES -->
     <div id="tab-candidatures" style="display:none">
       <div class="topbar">
         <h1>Candidatures</h1>
-        <div class="track-tabs">
-          <div class="ttab on" onclick="filterApps('all',this)">Toutes</div>
-          <div class="ttab" onclick="filterApps('a',this)">Banque</div>
-          <div class="ttab" onclick="filterApps('b',this)">Conseil</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn af" id="c-all" onclick="filterC('all',this)">Toutes</button>
+          <button class="btn ca" id="c-a" onclick="filterC('a',this)">Banque</button>
+          <button class="btn cb" id="c-b" onclick="filterC('b',this)">Conseil</button>
+          <a href="/api/offers/export" class="btn btn-accent">&#8595; Exporter CSV</a>
         </div>
       </div>
       <div class="panel">
-        <table class="data-table">
+        <table class="dt">
           <thead><tr><th>Poste</th><th>Entreprise</th><th>Piste</th><th>Site</th><th>Score</th><th>Statut</th><th>Date</th></tr></thead>
           <tbody id="all-apps"><tr><td colspan="7" class="empty">Aucune candidature.</td></tr></tbody>
         </table>
@@ -223,279 +214,293 @@
     <!-- CONFIG -->
     <div id="tab-config" style="display:none">
       <div class="topbar" style="margin-bottom:0"><h1>Configuration</h1></div>
-      <div class="cfg-grid">
-        <div>
-          <div class="tc-box">
-            <div class="tc-hdr" style="background:rgba(143,181,160,.05);border:1px solid rgba(143,181,160,.25);border-radius:8px 8px 0 0">
-              <span class="tc-title" style="color:var(--ta)">Piste Banque / Crédit</span>
-              <div class="toggle on" id="tog-a" onclick="this.classList.toggle('on')"></div>
-            </div>
-            <div class="tc-body" style="border-color:rgba(143,181,160,.15)">
-              <div class="field"><label>Intitulés (un par ligne)</label><textarea id="ca-kw" rows="6" placeholder="Analyste crédit senior&#10;Credit risk analyst&#10;Chargé d'affaires financement&#10;Analyste risque crédit&#10;Chargé de financement structuré"></textarea></div>
-              <div class="field"><label>Localisation</label><input id="ca-loc" /></div>
-              <div class="field"><label>Salaire min (€)</label><input id="ca-sal" type="number" /></div>
-              <div class="field"><label>Score min</label><select id="ca-sc"><option value="6">6/10</option><option value="7">7/10</option><option value="8">8/10</option></select></div>
-              <div class="field"><label>Résumé profil</label><textarea id="ca-pr" rows="3"></textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;">
+        <div class="tc" style="border-color:rgba(122,171,196,.2)">
+          <div class="tch">
+            <input class="tci" id="ta-label" placeholder="Piste A" />
+            <div class="tw"><span>Actif</span><div class="toggle on" id="ta-tog" onclick="this.classList.toggle('on')"></div></div>
+          </div>
+          <div class="tcb">
+            <div class="field"><label>Intitules (un par ligne)</label><textarea id="ta-kw" rows="6"></textarea></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div class="field"><label>Score min</label>
+                <select id="ta-sc"><option value="6">6/10</option><option value="7">7/10</option><option value="8">8/10</option><option value="9">9/10</option></select>
+              </div>
+              <div class="field"><label>Salaire min</label><input id="ta-sal" type="number" /></div>
             </div>
           </div>
         </div>
-        <div>
-          <div class="tc-box">
-            <div class="tc-hdr" style="background:rgba(154,171,200,.05);border:1px solid rgba(154,171,200,.25);border-radius:8px 8px 0 0">
-              <span class="tc-title" style="color:var(--tb)">Piste Conseil / M&A</span>
-              <div class="toggle on" id="tog-b" onclick="this.classList.toggle('on')"></div>
-            </div>
-            <div class="tc-body" style="border-color:rgba(154,171,200,.15)">
-              <div class="field"><label>Intitulés (un par ligne)</label><textarea id="cb-kw" rows="6" placeholder="Consultant financement&#10;Analyste M&A junior&#10;Consultant transaction services&#10;Analyste fusions acquisitions&#10;Consultant restructuring&#10;Analyste évaluation financière"></textarea></div>
-              <div class="field"><label>Localisation</label><input id="cb-loc" /></div>
-              <div class="field"><label>Salaire min (€)</label><input id="cb-sal" type="number" /></div>
-              <div class="field"><label>Score min</label><select id="cb-sc"><option value="6">6/10</option><option value="7">7/10</option><option value="8">8/10</option></select></div>
-              <div class="field"><label>Résumé profil</label><textarea id="cb-pr" rows="3"></textarea></div>
-            </div>
+        <div class="tc" style="border-color:rgba(200,185,138,.2)">
+          <div class="tch">
+            <input class="tci" id="tb-label" placeholder="Piste B" />
+            <div class="tw"><span>Actif</span><div class="toggle on" id="tb-tog" onclick="this.classList.toggle('on')"></div></div>
           </div>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="panel-header"><span class="panel-title">Paramètres communs</span></div>
-        <div style="padding:1.25rem">
-          <div class="cfg-grid">
-            <div style="display:flex;flex-direction:column;gap:.85rem">
-              <div class="field"><label>Ton des LM</label><select id="c-tone"><option value="direct">Direct et factuel</option><option value="formal">Formel</option><option value="dynamic">Dynamique</option></select></div>
-              <div class="field"><label>Fréquence</label><select id="c-freq"><option value="60">Toutes les heures</option><option value="180">Toutes les 3h</option><option value="360">Toutes les 6h</option><option value="1440">1x par jour</option></select></div>
-              <div class="field"><label>Template LM (optionnel)</label><textarea id="c-lm" rows="3" placeholder="Laisse vide pour génération libre..."></textarea></div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:.85rem">
-              <div class="field"><label>Plateformes</label></div>
-              <div class="site-grid" id="site-grid"></div>
+          <div class="tcb">
+            <div class="field"><label>Intitules (un par ligne)</label><textarea id="tb-kw" rows="6"></textarea></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div class="field"><label>Score min</label>
+                <select id="tb-sc"><option value="6">6/10</option><option value="7">7/10</option><option value="8">8/10</option><option value="9">9/10</option></select>
+              </div>
+              <div class="field"><label>Salaire min</label><input id="tb-sal" type="number" /></div>
             </div>
           </div>
         </div>
       </div>
-      <div style="display:flex;justify-content:flex-end;gap:8px">
+      <div class="cfg2">
+        <div class="panel">
+          <div class="ph"><span class="pt">General</span></div>
+          <div style="padding:1.25rem;display:flex;flex-direction:column;gap:.85rem;">
+            <div class="field"><label>Localisation</label><input id="c-loc" /></div>
+            <div class="field"><label>Frequence</label>
+              <select id="c-freq"><option value="60">Toutes les heures</option><option value="180">Toutes les 3h</option><option value="360">Toutes les 6h</option><option value="1440">1x par jour</option></select>
+            </div>
+            <div class="field"><label>Ton des LM</label>
+              <select id="c-tone"><option value="direct">Direct et factuel</option><option value="formal">Formel</option><option value="dynamic">Dynamique</option></select>
+            </div>
+            <div class="field"><label>Resume profil</label><textarea id="c-profil" rows="5"></textarea></div>
+            <div class="field"><label>Template LM (optionnel)</label><textarea id="c-lm" rows="3" placeholder="Laisse vide pour generer librement..."></textarea></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><span class="pt">Plateformes</span></div>
+          <div style="padding:1.25rem;"><div class="site-grid" id="site-grid"></div></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:.25rem;">
         <button class="btn" onclick="loadConfig()">Annuler</button>
         <button class="btn btn-accent" onclick="saveConfig()">Sauvegarder</button>
       </div>
+      <div id="cfg-reminder"></div>
     </div>
 
     <!-- LOGS -->
     <div id="tab-logs" style="display:none">
       <div class="topbar"><h1>Logs</h1><button class="btn" onclick="document.getElementById('log-body').innerHTML=''">Effacer</button></div>
-      <div class="panel"><div id="log-body" style="padding:1rem 1.25rem;max-height:520px;overflow-y:auto;display:flex;flex-direction:column;gap:1px"></div></div>
+      <div class="panel"><div id="log-body" style="padding:1rem 1.25rem;max-height:520px;overflow-y:auto;"></div></div>
     </div>
 
   </div>
 </div>
-<div id="toast-ct"></div>
+<div id="tw"></div>
+
 <script>
-const TABS=['dashboard','track-a','track-b','review','candidatures','config','logs'];
+const TABS=['dashboard','review','candidatures','config','logs'];
 function nav(t,el){
-  TABS.forEach(id=>document.getElementById('tab-'+id).style.display='none');
-  document.getElementById('tab-'+t).style.display='';
+  TABS.forEach(id=>document.getElementById('tab-'+id).style.display=id===t?'':'none');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(el)el.classList.add('active');
-  if(t==='review')loadQueue();
-  if(t==='candidatures')loadAllApps();
-  if(t==='track-a')loadTrack('a');
-  if(t==='track-b')loadTrack('b');
 }
-function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.getElementById('toast-ct').appendChild(t);setTimeout(()=>t.remove(),3000);}
+function toast(msg){
+  const t=document.createElement('div');t.className='toast';t.textContent=msg;
+  document.getElementById('tw').appendChild(t);setTimeout(()=>t.remove(),3000);
+}
 
 let lastLogId=0;
-async function poll(){
-  try{const r=await fetch('/api/bot/status');const d=await r.json();updateStats(d);appendLogs(d.logs);loadDashTracks();}catch(e){}
+async function pollStatus(){
+  try{
+    const d=await fetch('/api/bot/status').then(r=>r.json());
+    const s=d.stats||{};
+    document.getElementById('m-scan').textContent=s.total||0;
+    document.getElementById('m-pending').textContent=s.pending||0;
+    document.getElementById('m-sent').textContent=s.sent||0;
+    document.getElementById('m-skip').textContent=s.skipped||0;
+    document.getElementById('m-pa').textContent=s.pending_a||0;
+    document.getElementById('m-pb').textContent=s.pending_b||0;
+    const pend=s.pending||0;
+    const qb=document.getElementById('queue-count');
+    pend>0?(qb.style.display='',qb.textContent=pend):qb.style.display='none';
+    const pill=document.getElementById('status-pill');
+    const btn=document.getElementById('bot-btn');
+    if(d.running){pill.classList.add('running');document.getElementById('status-label').textContent='En cours';btn.textContent='Stop';btn.classList.add('running');}
+    else{pill.classList.remove('running');document.getElementById('status-label').textContent='Arrete';btn.textContent='\u25B6 Lancer le bot';btn.classList.remove('running');}
+    const newLogs=(d.logs||[]).filter(l=>l.id>lastLogId);
+    if(newLogs.length){
+      lastLogId=Math.max(...newLogs.map(l=>l.id));
+      const c=document.getElementById('log-body');
+      newLogs.reverse().forEach(l=>{
+        const div=document.createElement('div');div.className='log-entry log-'+l.level;
+        div.innerHTML='<span class="log-time">'+l.created_at+'</span><span class="log-msg">'+l.message+'</span>';
+        c.appendChild(div);
+      });
+      c.scrollTop=c.scrollHeight;
+    }
+  }catch(e){}
 }
-setInterval(poll,3000);poll();
+setInterval(pollStatus,3000);pollStatus();
 
-function updateStats(d){
-  const s=d.stats||{};
-  document.getElementById('m-scan').textContent=s.total||0;
-  document.getElementById('m-pending').textContent=s.pending||0;
-  document.getElementById('m-sent').textContent=s.sent||0;
-  document.getElementById('m-skip').textContent=s.skipped||0;
-  const p=s.pending||0;
-  const qb=document.getElementById('queue-count');
-  if(p>0){qb.style.display='';qb.textContent=p;}else qb.style.display='none';
-  document.getElementById('queue-info').textContent=p+' offre'+(p>1?'s':'')+' en attente';
-  const pill=document.getElementById('status-pill');const btn=document.getElementById('bot-btn');
-  if(d.running){pill.classList.add('running');document.getElementById('status-label').textContent='En cours';btn.textContent='■ Arrêter';btn.classList.add('running');}
-  else{pill.classList.remove('running');document.getElementById('status-label').textContent='Arrêté';btn.textContent='▶ Lancer le bot';btn.classList.remove('running');}
-}
-function appendLogs(logs){
-  const c=document.getElementById('log-body');
-  const nl=logs.filter(l=>l.id>lastLogId);if(!nl.length)return;
-  lastLogId=Math.max(...nl.map(l=>l.id));
-  nl.reverse().forEach(l=>{const d=document.createElement('div');d.className='log-entry log-'+l.level;d.innerHTML=`<span class="log-time">${l.created_at}</span><span class="log-msg">${l.message}</span>`;c.appendChild(d);});
-  c.scrollTop=c.scrollHeight;
-}
 async function toggleBot(){
-  const r=await fetch('/api/bot/status');const d=await r.json();
-  if(d.running){await fetch('/api/bot/stop',{method:'POST'});toast('Bot arrêté.');}
-  else{await fetch('/api/bot/start',{method:'POST'});toast('Bot démarré...');}
-  poll();
+  const d=await fetch('/api/bot/status').then(r=>r.json());
+  if(d.running){await fetch('/api/bot/stop',{method:'POST'});toast('Bot arrete.');}
+  else{await fetch('/api/bot/start',{method:'POST'});toast('Bot demarre !');}
+  pollStatus();
 }
 
-async function loadDashTracks(){
-  const r=await fetch('/api/offers/all');const offers=await r.json();
-  const a=offers.filter(o=>o.track==='a');const b=offers.filter(o=>o.track==='b');
-  document.getElementById('cnt-a').textContent=a.length+' offres';
-  document.getElementById('cnt-b').textContent=b.length+' offres';
-  renderMini('list-a',a.slice(0,5));renderMini('list-b',b.slice(0,5));
-}
-function renderMini(id,offers){
-  const tb=document.getElementById(id);
-  tb.innerHTML=offers.length?offers.map(o=>`<tr>
-    <td style="padding-left:1.25rem;font-size:11px">${o.title}</td>
-    <td style="color:var(--muted);font-size:11px">${o.company}</td>
-    <td style="font-size:11px">${o.score}/10</td>
-    <td style="padding-right:1.25rem"><span class="badge ${o.status==='sent'?'badge-sent':o.status==='skipped'?'badge-skip':'badge-pending'}">${o.status==='sent'?'Envoyé':o.status==='skipped'?'Ignoré':'Attente'}</span></td>
-  </tr>`).join(''):'<tr><td colspan="4" class="empty" style="padding:1rem">Aucune offre.</td></tr>';
-}
-
-async function loadTrack(t){
-  const r=await fetch('/api/offers/all');const offers=await r.json();
-  const f=offers.filter(o=>o.track===t);
-  document.getElementById('t'+t+'-info').textContent=f.length+' offre'+(f.length>1?'s':'');
-  const c=document.getElementById('t'+t+'-cont');
-  if(!f.length){c.innerHTML='<div class="empty">Aucune offre pour cette piste.</div>';return;}
-  c.innerHTML=[...f.filter(o=>o.status==='pending'),...f.filter(o=>o.status!=='pending')].map((o,i)=>card(o,i===0&&o.status==='pending',t)).join('');
-}
-
-function card(o,top,t){
-  const tc='t'+t;const cc='chip-'+t;
-  return `<div class="offer-card ${tc}${top?' top':''}" id="card-${o.id}">
-    <div class="offer-header">
-      <div>
-        <div class="offer-company">${o.company}</div>
-        <div class="offer-title">${o.title}</div>
-        <div class="offer-chips">
-          <span class="chip">${o.site}</span>
-          ${o.location?`<span class="chip">${o.location}</span>`:''}
-          ${o.salary?`<span class="chip">${o.salary}</span>`:''}
-          ${o.url?`<a href="${o.url}" target="_blank" class="chip" style="color:var(--blue);border-color:rgba(122,171,196,.3);text-decoration:none">↗ voir</a>`:''}
-          <span class="chip ${cc}">${t==='a'?'Banque':'Conseil'}</span>
-        </div>
-      </div>
-      <div class="score-big ${o.score>=8?'hi':'md'}">${o.score}<span style="font-size:14px;color:var(--muted)">/10</span></div>
-    </div>
-    <div class="offer-body">
-      <div class="ai-block"><div class="ai-lbl">Analyse IA</div><div class="ai-txt">${o.ai_analysis||'N/A'}</div></div>
-      <div class="lm-block">
-        <div class="lm-hdr">
-          <span style="font-size:11px;color:var(--muted)">Lettre de motivation</span>
-          <div style="display:flex;gap:6px">
-            <button class="btn" style="font-size:11px;padding:4px 10px" onclick="toggleEdit(${o.id})">Modifier</button>
-            <button class="btn" style="font-size:11px;padding:4px 10px" onclick="regenLm(${o.id},this)">↺ Régénérer</button>
-          </div>
-        </div>
-        <div class="lm-txt" id="lm-${o.id}" contenteditable="false">${o.lm_draft||''}</div>
-      </div>
-    </div>
-    ${o.status==='pending'?`<div class="offer-actions">
-      <button class="btn btn-ok" onclick="validateAndOpen(${o.id},'${(o.url||'').replace(/'/g,"\\'")}')">✓ Valider & Postuler</button>
-      <div class="sp"></div>
-      <button class="btn btn-danger" onclick="skip(${o.id})">Ignorer</button>
-    </div>`:`<div style="padding:.75rem 1.25rem;font-size:11px;color:var(--hint)">${o.status==='sent'?'✓ Candidature envoyée':'Ignorée'} — ${(o.sent_at||o.created_at||'').split('T')[0]}</div>`}
-  </div>`;
-}
-
+let allQ=[],qF='all';
 async function loadQueue(){
-  const r=await fetch('/api/offers/queue');const offers=await r.json();
-  const c=document.getElementById('queue-cont');
-  if(!offers.length){c.innerHTML='<div class="empty">Aucune offre en attente.</div>';return;}
-  c.innerHTML=offers.map((o,i)=>card(o,i===0,o.track||'a')).join('');
+  allQ=await fetch('/api/offers/queue').then(r=>r.json());
+  renderQ();
 }
+function filterQ(f,el){qF=f;document.querySelectorAll('[id^="f-"]').forEach(b=>b.classList.remove('af'));el.classList.add('af');renderQ();}
+function renderQ(){
+  const items=qF==='all'?allQ:allQ.filter(o=>o.track===qF);
+  const c=document.getElementById('queue-container');
+  if(!items.length){c.innerHTML='<div class="empty">Aucune offre en attente pour cette piste.</div>';return;}
+  c.innerHTML=items.map((o,i)=>{
+    const isA=o.track==='a';
+    return '<div class="offer-card '+(i===0?(isA?'ta':'tb'):'')+'" id="card-'+o.id+'">'
+      +'<div class="oh"><div>'
+      +'<div class="oc">'+o.company+'</div>'
+      +'<div class="ot">'+o.title+'</div>'
+      +'<div class="ochips">'
+      +'<span class="chip '+(isA?'ca':'cb')+'">'+(isA?'Banque':'Conseil')+'</span>'
+      +'<span class="chip">'+o.site+'</span>'
+      +(o.location?'<span class="chip">'+o.location+'</span>':'')
+      +(o.salary?'<span class="chip">'+o.salary+'</span>':'')
+      +(o.url?'<a href="'+o.url+'" target="_blank" class="chip ca" style="text-decoration:none">voir</a>':'')
+      +'</div></div>'
+      +'<div class="sb '+(o.score>=8?'hi':'mi')+'">'+o.score+'<span style="font-size:13px;color:var(--muted)">/10</span></div>'
+      +'</div>'
+      +'<div class="ob">'
+      +'<div class="ai-block"><div class="ail">Analyse IA</div><div class="ait">'+(o.ai_analysis||'N/A')+'</div></div>'
+      +'<div class="lm-block">'
+      +'<div class="lmh"><span class="lmt-label">Lettre de motivation</span>'
+      +'<div style="display:flex;gap:6px;">'
+      +'<button class="btn" style="font-size:11px;padding:3px 9px;" onclick="toggleEdit('+o.id+')">Modifier</button>'
+      +'<button class="btn" style="font-size:11px;padding:3px 9px;" onclick="regenLm('+o.id+',this)">Regenerer</button>'
+      +'</div></div>'
+      +'<div class="lm-text" id="lm-'+o.id+'" contenteditable="false">'+(o.lm_draft||'')+'</div>'
+      +'</div></div>'
+      +'<div class="oa">'
+      +'<button class="btn btn-ok" onclick="valAndOpen('+o.id+',\''+encodeURIComponent(o.url||'')+'\')">Valider et Postuler</button>'
+      +'<div class="sp"></div>'
+      +'<button class="btn btn-danger" onclick="skipOffer('+o.id+')">Ignorer</button>'
+      +'</div></div>';
+  }).join('');
+}
+
 function toggleEdit(id){
-  const el=document.getElementById('lm-'+id);const e=el.contentEditable==='true';
-  el.contentEditable=e?'false':'true';
-  if(!e){el.focus();el.style.outline='1px solid rgba(200,185,138,.3)';}else el.style.outline='none';
+  const el=document.getElementById('lm-'+id);
+  el.contentEditable=el.contentEditable==='true'?'false':'true';
+  if(el.contentEditable==='true')el.focus();
 }
 async function regenLm(id,btn){
-  btn.textContent='...';btn.disabled=true;
-  const r=await fetch(`/api/offers/${id}/regenerate_lm`,{method:'POST'});
-  const d=await r.json();if(d.ok){document.getElementById('lm-'+id).textContent=d.lm;toast('LM régénérée.');}
-  btn.textContent='↺ Régénérer';btn.disabled=false;
+  const orig=btn.textContent;btn.textContent='...';btn.disabled=true;
+  const d=await fetch('/api/offers/'+id+'/regenerate_lm',{method:'POST'}).then(r=>r.json());
+  if(d.ok){document.getElementById('lm-'+id).textContent=d.lm;toast('LM regeneree.');}
+  btn.textContent=orig;btn.disabled=false;
 }
-async function validateAndOpen(id,url){
+async function valAndOpen(id,encodedUrl){
   const lm=document.getElementById('lm-'+id).innerText;
-  try{await navigator.clipboard.writeText(lm);toast('LM copiée !');}catch(e){toast('Copie manuelle nécessaire');}
-  await fetch(`/api/offers/${id}/validate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lm})});
-  setTimeout(()=>{if(url&&url!=='undefined')window.open(url,'_blank');},800);
+  try{await navigator.clipboard.writeText(lm);toast('LM copiee !');}catch(e){toast('Validee.');}
+  await fetch('/api/offers/'+id+'/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lm})});
+  const url=decodeURIComponent(encodedUrl);
+  if(url&&url!=='undefined')setTimeout(()=>window.open(url,'_blank'),800);
   document.getElementById('card-'+id)?.remove();
-  loadQueue();loadDashTracks();loadAllApps();poll();
+  allQ=allQ.filter(o=>o.id!==id);
+  renderQ();loadDec();pollStatus();
 }
-async function skip(id){
-  await fetch(`/api/offers/${id}/skip`,{method:'POST'});
+async function skipOffer(id){
+  await fetch('/api/offers/'+id+'/skip',{method:'POST'});
   document.getElementById('card-'+id)?.remove();
-  loadQueue();loadDashTracks();poll();
+  allQ=allQ.filter(o=>o.id!==id);
+  renderQ();loadDec();pollStatus();
 }
 
-let curFilter='all';
-async function loadAllApps(){
-  const r=await fetch('/api/offers/all');const offers=await r.json();
-  const f=curFilter==='all'?offers:offers.filter(o=>o.track===curFilter);
+let allC=[],cF='all';
+async function loadCand(){
+  const all=await fetch('/api/offers/all').then(r=>r.json());
+  allC=all.filter(o=>o.status==='sent');renderC();
+}
+function filterC(f,el){cF=f;document.querySelectorAll('[id^="c-"]').forEach(b=>b.classList.remove('af'));el.classList.add('af');renderC();}
+function renderC(){
+  const items=cF==='all'?allC:allC.filter(o=>o.track===cF);
   const tb=document.getElementById('all-apps');
-  tb.innerHTML=f.length?f.map(o=>`<tr>
-    <td style="padding-left:1.25rem">${o.title}</td>
-    <td style="color:var(--muted)">${o.company}</td>
-    <td><span class="chip chip-${o.track||'a'}">${o.track==='b'?'Conseil':'Banque'}</span></td>
-    <td><span class="chip">${o.site}</span></td>
-    <td>${o.score}/10</td>
-    <td><span class="badge ${o.status==='sent'?'badge-sent':o.status==='skipped'?'badge-skip':'badge-pending'}">${o.status==='sent'?'Envoyé':o.status==='skipped'?'Ignoré':'Attente'}</span></td>
-    <td style="color:var(--hint);padding-right:1.25rem">${(o.sent_at||o.created_at||'').split('T')[0]}</td>
-  </tr>`).join(''):'<tr><td colspan="7" class="empty">Aucune candidature.</td></tr>';
-}
-function filterApps(f,el){
-  curFilter=f;
-  document.querySelectorAll('.ttab').forEach(t=>t.className='ttab');
-  if(f==='all')el.classList.add('on');
-  else if(f==='a')el.classList.add('on-a');
-  else el.classList.add('on-b');
-  loadAllApps();
+  tb.innerHTML=items.length?items.map(o=>{
+    const isA=o.track==='a';
+    return '<tr><td style="font-weight:400">'+o.title+'</td><td style="color:var(--muted)">'+o.company+'</td>'
+      +'<td><span class="chip '+(isA?'ca':'cb')+'">'+(isA?'Banque':'Conseil')+'</span></td>'
+      +'<td><span class="chip">'+o.site+'</span></td>'
+      +'<td>'+o.score+'/10</td>'
+      +'<td><span class="badge bs">Envoye</span></td>'
+      +'<td style="color:var(--hint)">'+(o.sent_at||'').split('T')[0]+'</td></tr>';
+  }).join(''):'<tr><td colspan="7" class="empty">Aucune candidature.</td></tr>';
 }
 
-const SITES={linkedin:'LinkedIn',indeed:'Indeed',wttj:'Welcome to the Jungle',apec:'APEC',cadremploi:'Cadremploi',hellowork:'HelloWork'};
-async function loadConfig(){
-  const r=await fetch('/api/config');const c=await r.json();
-  const ta=c.track_a||{};const tb=c.track_b||{};
-  document.getElementById('ca-kw').value=(ta.keywords||[]).join('\n');
-  document.getElementById('ca-loc').value=ta.localisation||'Paris';
-  document.getElementById('ca-sal').value=ta.salaire_min||55000;
-  document.getElementById('ca-sc').value=ta.score_min||7;
-  document.getElementById('ca-pr').value=ta.profil_summary||'';
-  document.getElementById('cb-kw').value=(tb.keywords||[]).join('\n');
-  document.getElementById('cb-loc').value=tb.localisation||'Paris';
-  document.getElementById('cb-sal').value=tb.salaire_min||50000;
-  document.getElementById('cb-sc').value=tb.score_min||7;
-  document.getElementById('cb-pr').value=tb.profil_summary||'';
-  document.getElementById('c-tone').value=c.lm_tone||'direct';
-  document.getElementById('c-freq').value=c.frequence_minutes||180;
-  document.getElementById('c-lm').value=c.lm_template||'';
-  if(ta.enabled===false)document.getElementById('tog-a').classList.remove('on');
-  if(tb.enabled===false)document.getElementById('tog-b').classList.remove('on');
-  const sg=document.getElementById('site-grid');
-  sg.innerHTML=Object.entries(SITES).map(([k,lbl])=>`
-    <div class="site-card ${(c.sites||{})[k]?'on':''}" id="site-${k}">
-      <span class="site-name">${lbl}</span>
-      <div class="toggle ${(c.sites||{})[k]?'on':''}" onclick="this.classList.toggle('on');document.getElementById('site-${k}').classList.toggle('on')"></div>
-    </div>`).join('');
+async function loadDec(){
+  const all=await fetch('/api/offers/all').then(r=>r.json());
+  const dec=all.filter(o=>o.status!=='pending').slice(0,8);
+  const tb=document.getElementById('recent-dec');
+  tb.innerHTML=dec.length?dec.map(o=>{
+    const isA=o.track==='a';
+    return '<tr><td>'+o.title+'</td><td style="color:var(--muted)">'+o.company+'</td>'
+      +'<td><span class="chip '+(isA?'ca':'cb')+'">'+(isA?'Banque':'Conseil')+'</span></td>'
+      +'<td>'+o.score+'/10</td>'
+      +'<td><span class="badge '+(o.status==='sent'?'bs':'bk')+'">'+(o.status==='sent'?'Envoye':'Ignore')+'</span></td></tr>';
+  }).join(''):'<tr><td colspan="5" class="empty">Aucune decision.</td></tr>';
 }
+
+const SITES={linkedin:'LinkedIn',efinancial:'eFinancialCareers',hellowork:'HelloWork',francetravail:'France Travail (API)'};
+
+async function loadConfig(){
+  const c=await fetch('/api/config').then(r=>r.json());
+  const ta=c.track_a||{};const tb=c.track_b||{};
+  document.getElementById('ta-label').value=ta.label||'Banque / Analyse credit';
+  document.getElementById('ta-kw').value=(ta.keywords||[]).join('\n');
+  document.getElementById('ta-sc').value=ta.score_min||7;
+  document.getElementById('ta-sal').value=ta.salaire_min||55000;
+  document.getElementById('tb-label').value=tb.label||'Conseil / Advisory';
+  document.getElementById('tb-kw').value=(tb.keywords||[]).join('\n');
+  document.getElementById('tb-sc').value=tb.score_min||7;
+  document.getElementById('tb-sal').value=tb.salaire_min||55000;
+  ta.enabled!==false?document.getElementById('ta-tog').classList.add('on'):document.getElementById('ta-tog').classList.remove('on');
+  tb.enabled!==false?document.getElementById('tb-tog').classList.add('on'):document.getElementById('tb-tog').classList.remove('on');
+  document.getElementById('c-loc').value=c.localisation||'Paris';
+  document.getElementById('c-freq').value=c.frequence_minutes||180;
+  document.getElementById('c-tone').value=c.lm_tone||'direct';
+  document.getElementById('c-profil').value=c.profil_summary||'';
+  document.getElementById('c-lm').value=c.lm_template||'';
+  const sg=document.getElementById('site-grid');
+  sg.innerHTML=Object.entries(SITES).map(([k,label])=>
+    '<div class="site-card '+(c.sites?.[k]?'on':'')+'" id="site-'+k+'">'
+    +'<span class="sn">'+label+'</span>'
+    +'<div class="toggle '+(c.sites?.[k]?'on':'')+'" onclick="this.classList.toggle(\'on\');document.getElementById(\'site-'+k+'\').classList.toggle(\'on\')"></div>'
+    +'</div>'
+  ).join('');
+  document.getElementById('label-a').textContent='Piste A - '+(ta.label||'Banque');
+  document.getElementById('label-b').textContent='Piste B - '+(tb.label||'Conseil');
+}
+
 async function saveConfig(){
-  const sites={};Object.keys(SITES).forEach(k=>{sites[k]=document.getElementById('site-'+k).classList.contains('on');});
-  const kw=id=>document.getElementById(id).value.split('\n').map(k=>k.trim()).filter(k=>k);
-  const cfg={
-    track_a:{enabled:document.getElementById('tog-a').classList.contains('on'),keywords:kw('ca-kw'),localisation:document.getElementById('ca-loc').value,salaire_min:parseInt(document.getElementById('ca-sal').value)||0,score_min:parseInt(document.getElementById('ca-sc').value),profil_summary:document.getElementById('ca-pr').value},
-    track_b:{enabled:document.getElementById('tog-b').classList.contains('on'),keywords:kw('cb-kw'),localisation:document.getElementById('cb-loc').value,salaire_min:parseInt(document.getElementById('cb-sal').value)||0,score_min:parseInt(document.getElementById('cb-sc').value),profil_summary:document.getElementById('cb-pr').value},
+  const kw=id=>document.getElementById(id).value.split('\n').map(k=>k.trim()).filter(k=>k.length>0);
+  const sites={};
+  Object.keys(SITES).forEach(k=>{sites[k]=document.getElementById('site-'+k).classList.contains('on');});
+  const config={
+    localisation:document.getElementById('c-loc').value,
+    frequence_minutes:parseInt(document.getElementById('c-freq').value),
     lm_tone:document.getElementById('c-tone').value,
     lm_template:document.getElementById('c-lm').value,
-    frequence_minutes:parseInt(document.getElementById('c-freq').value),
+    profil_summary:document.getElementById('c-profil').value,
     sites,
+    track_a:{enabled:document.getElementById('ta-tog').classList.contains('on'),label:document.getElementById('ta-label').value,keywords:kw('ta-kw'),score_min:parseInt(document.getElementById('ta-sc').value),salaire_min:parseInt(document.getElementById('ta-sal').value)||0},
+    track_b:{enabled:document.getElementById('tb-tog').classList.contains('on'),label:document.getElementById('tb-label').value,keywords:kw('tb-kw'),score_min:parseInt(document.getElementById('tb-sc').value),salaire_min:parseInt(document.getElementById('tb-sal').value)||0},
   };
-  await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});
-  toast('Sauvegardé.');
+  const res=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(config)}).then(r=>r.json());
+  try{await navigator.clipboard.writeText(res.json_to_save);toast('Config sauvegardee - JSON copie !');}
+  catch(e){toast('Config sauvegardee.');}
+  const rem=document.getElementById('cfg-reminder');
+  rem.innerHTML='<div style="margin-top:1rem;border:1px solid rgba(200,185,138,.3);border-radius:8px;padding:1rem 1.25rem;background:rgba(200,185,138,.05);">'
+    +'<div style="font-size:11px;color:var(--accent);margin-bottom:8px;letter-spacing:.06em;text-transform:uppercase;">Pour sauvegarder definitivement</div>'
+    +'<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Colle ce JSON dans Railway Variables sous le nom <strong style="color:var(--text)">BOT_CONFIG</strong></div>'
+    +'<textarea style="width:100%;height:80px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);font-family:var(--ff);font-size:11px;padding:8px;resize:none;" readonly>'+res.json_to_save+'</textarea>'
+    +'<button class="btn" style="margin-top:8px;font-size:11px;" onclick="this.parentElement.parentElement.innerHTML=\'\'">Fermer</button>'
+    +'</div>';
+  document.getElementById('label-a').textContent='Piste A - '+config.track_a.label;
+  document.getElementById('label-b').textContent='Piste B - '+config.track_b.label;
 }
-loadConfig();loadAllApps();loadDashTracks();
+
+loadConfig();loadDec();
 document.querySelector('[data-tab="review"]').addEventListener('click',loadQueue);
-document.querySelector('[data-tab="candidatures"]').addEventListener('click',loadAllApps);
+document.querySelector('[data-tab="candidatures"]').addEventListener('click',loadCand);
 </script>
 </body>
 </html>

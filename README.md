@@ -20,11 +20,23 @@ Les offres déjà en base sont ignorées avant de charger leur description : on 
 des requêtes et des appels Claude. Si un site répond « trop de requêtes » (429), le bot
 patiente une fois puis le met de côté jusqu'à la session suivante.
 
+## Lancer sur ton PC (Windows, gratuit)
+
+1. Double-clique sur **Lancer JobBot.bat**.
+2. Au premier lancement, le fichier `.env` s'ouvre dans le Bloc-notes : colle ta clé
+   Anthropic après `ANTHROPIC_API_KEY=`, enregistre, ferme, puis relance le .bat.
+3. La première fois, l'installation prend environ une minute. L'interface s'ouvre ensuite
+   sur http://localhost:5000 (identifiants : ceux du fichier `.env`).
+4. Clique sur **Démarrer** dans l'interface. Le bot tourne tant que la fenêtre noire reste ouverte.
+
+En local, les offres (`jobbot.db`) et la config (`config.json`) sont conservées d'une fois
+sur l'autre, et l'interface n'est accessible que depuis ton PC.
+
 ## Activer France Travail (gratuit, 10 min)
 
 1. Crée un compte sur https://francetravail.io (espace « Développeur »).
 2. Crée une application et abonne-la à l'API **« Offres d'emploi v2 »**.
-3. Dans Railway → Variables, ajoute :
+3. Dans le fichier `.env` (en local) ou dans Railway → Variables, ajoute :
    - `FT_CLIENT_ID` = l'identifiant client
    - `FT_CLIENT_SECRET` = la clé secrète
 4. Optionnel : `"ft_departement": "75"` dans la config (ex. `"92"` pour les Hauts-de-Seine).
@@ -46,4 +58,4 @@ Sans ces clés, la source est simplement ignorée (message dans les logs).
 
 ## Limite connue
 
-La base SQLite (`/tmp/jobbot.db`) et `config.json` sont effacés à chaque redéploiement.
+Sur Railway, la base SQLite (`/tmp/jobbot.db`) et `config.json` sont effacés à chaque redéploiement.

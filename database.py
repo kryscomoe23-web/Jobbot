@@ -1,6 +1,8 @@
+import os
 import sqlite3
 
-DB_PATH = "/tmp/jobbot.db"
+# Railway/Linux : /tmp ; Windows (pas de /tmp) : fichier jobbot.db a cote de l'app
+DB_PATH = os.environ.get("DB_PATH") or ("/tmp/jobbot.db" if os.path.isdir("/tmp") else "jobbot.db")
 
 
 def get_db():
